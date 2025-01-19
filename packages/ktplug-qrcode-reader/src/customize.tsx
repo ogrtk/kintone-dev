@@ -1,27 +1,10 @@
 import { createRoot } from "react-dom/client";
 import { AppIndex, AppRecord } from "./components/customize/App";
-import { restoreStorage } from "./lib/utils";
 import type { PluginConfig } from "./types";
 
 /**
- * プラグインの設定取得
- * @param PLUGIN_ID
- * @returns
+ * カスタマイズのjavascriptエントリポイント
  */
-const getConfig = (PLUGIN_ID: string): PluginConfig => {
-  // const config = restoreStorage(PLUGIN_ID, cardReaderPluginConfigSchema);
-  // 以下はテスト用ロジック
-  const config: PluginConfig = {
-    useCase: {
-      types: ["listRegist"],
-      listRegist: { targetViewName: "target", useAdditionalValues: false },
-      record: { space: "reader" },
-    },
-    qrCode: { dataName: "チケットコード", field: "ticketCode" },
-  };
-  return config;
-};
-
 ((PLUGIN_ID) => {
   /**
    * 追加・編集画面表示後イベント
@@ -85,3 +68,22 @@ const getConfig = (PLUGIN_ID: string): PluginConfig => {
     return event;
   });
 })(kintone.$PLUGIN_ID);
+
+/**
+ * プラグインの設定取得
+ * @param PLUGIN_ID
+ * @returns
+ */
+const getConfig = (PLUGIN_ID: string): PluginConfig => {
+  // const config = restoreStorage(PLUGIN_ID, cardReaderPluginConfigSchema);
+  // 以下はテスト用ロジック
+  const config: PluginConfig = {
+    useCase: {
+      types: ["listRegist"],
+      listRegist: { targetViewName: "target", useAdditionalValues: false },
+      record: { space: "reader" },
+    },
+    qrCode: { dataName: "チケットコード", field: "ticketCode" },
+  };
+  return config;
+};

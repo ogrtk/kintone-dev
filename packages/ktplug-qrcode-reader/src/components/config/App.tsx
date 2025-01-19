@@ -1,4 +1,3 @@
-import { restoreStorage, storeStorage } from "@/src/lib/utils";
 import {
   type PluginConfig,
   USECASE_TYPE_SELECTIONS,
@@ -11,11 +10,19 @@ import {
   KintoneLikeSelect,
   KintoneLikeSingleText,
   KintoneLikeTable,
+  type SelectOption,
+  restorePluginConfig,
+  storePluginConfig,
 } from "@ogrtk/shared-components";
 import { useEffect, useMemo, useState } from "react";
 import { type SubmitHandler, useForm } from "react-hook-form";
 import "@ogrtk/shared-styles";
 
+/**
+ * プラグイン設定画面
+ * @param param0.PLUGIN_UD プラグインID。実行時にkintone環境から渡される値
+ * @returns
+ */
 export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
   // kintoneの項目取得ユーティリティ
   const kintoneFieldsRetriever = useMemo(
@@ -23,18 +30,12 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
     [],
   );
   // 選択肢の項目用state
-  const [textFields, setTextFields] = useState<
-    { code: string; label: string }[]
-  >([]);
-  const [spaceFields, setSpaceFields] = useState<
-    { code: string; label: string }[]
-  >([]);
-  const [viewNames, setViewNames] = useState<{ code: string; label: string }[]>(
-    [],
-  );
+  const [textFields, setTextFields] = useState<SelectOption[]>([]);
+  const [spaceFields, setSpaceFields] = useState<SelectOption[]>([]);
+  const [viewNames, setViewNames] = useState<SelectOption[]>([]);
 
   // pluginに保存した設定情報を取得
-  const config = restoreStorage(PLUGIN_ID, pluginConfigSchema);
+  const config = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
 
   // react-hook-form
   const methods = useForm<PluginConfig>({
@@ -81,7 +82,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
    * @param data
    */
   const saveConfig: SubmitHandler<PluginConfig> = (data) => {
-    storeStorage(data, () => {
+    storePluginConfig(data, () => {
       alert("保存しました。反映のため、アプリを更新してください");
       window.location.href = `../../flow?app=${kintone.app.getId()}`;
     });

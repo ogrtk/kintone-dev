@@ -1,5 +1,5 @@
 import i18next from "i18next";
-import { string, z } from "zod";
+import { z } from "zod";
 import { zodI18nMap } from "zod-i18n-map";
 // Import your language translation files
 import translation from "zod-i18n-map/locales/ja/zod.json";
@@ -21,6 +21,16 @@ export type KintoneRecord = {
   };
 };
 
+/**
+ * 用途種別選択肢
+ */
+export const USECASE_TYPE_SELECTIONS = [
+  { code: "listSearch", label: "一覧での検索" },
+  { code: "listRegist", label: "一覧での登録" },
+  { code: "listUpdate", label: "一覧での更新" },
+  { code: "record", label: "詳細画面" },
+];
+
 // /**
 //  *  0以上の整数スキーマ（preprocessにより入力文字列を数値とする）
 //  */
@@ -32,60 +42,43 @@ export type KintoneRecord = {
 // }, z.number().int().min(0));
 
 /**
- * 用途設定スキーマ
+ * 用途別設定スキーマ（一覧検索）
  */
 const listSearchConfigSchema = z.object({
   targetViewName: z.string().nonempty(),
   additionalQuery: z.string().optional(),
 });
 
-const listRegistConfigSchema =
-  // z.preprocess(
-  //   (data) => {
-  //     if (
-  //       typeof data === "object" &&
-  //       data !== null &&
-  //       "useAdditionalValues" in data &&
-  //       typeof data.useAdditionalValues === "boolean"
-  //     ) {
-  //       if (data.useAdditionalValues === false && "additionalValues" in data) {
-  //         data.additionalValues = undefined;
-  //       }
-  //     }
+/**
+ * 用途別設定スキーマ（一覧登録）
+ */
+const listRegistConfigSchema = z.object({
+  targetViewName: z.string().nonempty(),
+  useAdditionalValues: z.boolean(),
+  additionalValues: z
+    .array(z.object({ field: z.string().nonempty(), value: z.any() }))
+    .optional(),
+});
 
-  //     return data;
-  //   },
-  z.object({
-    targetViewName: z.string().nonempty(),
-    useAdditionalValues: z.boolean(),
-    additionalValues: z
-      .array(z.object({ field: z.string().nonempty(), value: z.any() }))
-      .optional(),
-  });
-// );
-// .transform((data) => {
-//   if (!data.useAdditionalValues) {
-//     // useAdditionalValues が false の場合は additionalValues を無視
-//     return { ...data, additionalValues: undefined };
-//   }
-//   return data;
-// });
+/**
+ * 用途別設定スキーマ（一覧更新）
+ */
 const listUpdateConfigSchema = z.object({
   targetViewName: z.string().nonempty(),
   additionalQuery: z.string().optional(),
   update: z.array(z.object({ field: z.string(), value: z.any() })),
 });
+
+/**
+ * 用途別設定スキーマ（レコード）
+ */
 const recordConfigSchema = z.object({
   space: z.string(),
 });
 
-export const USECASE_TYPE_SELECTIONS = [
-  { code: "listSearch", label: "一覧での検索" },
-  { code: "listRegist", label: "一覧での登録" },
-  { code: "listUpdate", label: "一覧での更新" },
-  { code: "record", label: "詳細画面" },
-];
-
+/**
+ * 用途種別スキーマ
+ */
 const useCaseTypeSchema = z
   .literal("listSearch")
   .or(z.literal("listRegist"))
@@ -95,7 +88,7 @@ const useCaseTypeSchema = z
 type UseCaseType = z.infer<typeof useCaseTypeSchema>;
 
 /**
- * 用途設定スキーマ
+ * 用途種別設定スキーマ
  */
 const useCaseSchema = z
   .object({
@@ -105,6 +98,7 @@ const useCaseSchema = z
     listUpdate: listUpdateConfigSchema.optional(),
     record: recordConfigSchema.optional(),
   })
+  // 設定されている用途種別の設定があることをチェック
   .superRefine((data, ctx) => {
     for (const useCaseType of [
       "listSearch",

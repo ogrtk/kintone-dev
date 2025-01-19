@@ -1,9 +1,10 @@
 import { KintoneRestAPIClient } from "@kintone/rest-api-client";
+import type { ZodSchema, z } from "zod";
 
 /**
  * 選択肢の型
  */
-type SelectOption = { code: string; label: string };
+export type SelectOption = { code: string; label: string };
 
 /**
  * kintoneのフィールド取得ユーティリティクラス
@@ -101,4 +102,29 @@ export class KintoneFieldsRetriever {
     // 空白行を追加
     return [{ code: "", label: "" }].concat(list);
   };
+}
+
+/**
+ * プラグイン設定の保存
+ * @param data
+ * @param callback
+ */
+export const storePluginConfig = <T>(data: T, callback: () => void) => {
+  const stringifiedData = { data: JSON.stringify(data) };
+  kintone.plugin.app.setConfig(stringifiedData, callback);
+};
+
+/**
+ * プラグイン設定の復元
+ * @param data
+ * @param callback
+ */
+export function restorePluginConfig<T extends ZodSchema>(
+  id: string,
+  schema: T,
+): z.infer<typeof schema> {
+  const config = kintone.plugin.app.getConfig(id);
+  return config.data
+    ? schema.safeParse(JSON.parse(config.data)).data
+    : undefined;
 }
