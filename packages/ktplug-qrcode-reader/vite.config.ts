@@ -15,14 +15,12 @@ export default defineConfig({
       output: {
         format: "iife", // 即時実行関数
         dir: "public", // 開発サーバで扱えるよう、publicディレクトリの下にビルド後のファイルを生成
-        // dir: "dist", // 開発サーバで扱えるよう、publicディレクトリの下にビルド後のファイルを生成
         entryFileNames: "[name].js",
       },
     },
   },
   server: {
     https: baseConfig?.server?.https,
-    // open: "/"
     open: path.join("public", "customize.js"),
     // publicディレクトリを監視対象に（更新時に開発サーバで読み込み直す）
     watch: {

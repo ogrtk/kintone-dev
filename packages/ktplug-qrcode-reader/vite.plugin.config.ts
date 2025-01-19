@@ -1,9 +1,12 @@
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
-
+/**
+ * kintoneプラグイン設定画面用　ビルド設定
+ */
 export default defineConfig({
   plugins: [tsconfigPaths()],
   build: {
+    sourcemap: true,
     emptyOutDir: false,
     rollupOptions: {
       input: { config: "src/config.tsx" }, // ビルドの起点

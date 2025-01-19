@@ -111,6 +111,9 @@ importers:
         specifier: ^7.54.2
         version: 7.54.2(react@19.0.0)
     devDependencies:
+      '@kintone/dts-gen':
+        specifier: ^8.1.1
+        version: 8.1.1(typescript@5.7.3)
       '@types/node':
         specifier: ^22.10.2
         version: 22.10.5

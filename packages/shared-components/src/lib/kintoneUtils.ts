@@ -1,11 +1,20 @@
 import { KintoneRestAPIClient } from "@kintone/rest-api-client";
 
+/**
+ * 選択肢の型
+ */
 type SelectOption = { code: string; label: string };
 
+/**
+ * kintoneのフィールド取得ユーティリティクラス
+ */
 export class KintoneFieldsRetriever {
   private client: KintoneRestAPIClient;
   private app: number;
 
+  /**
+   * コンストラクタ
+   */
   constructor() {
     this.client = new KintoneRestAPIClient();
     const appId = kintone.app.getId();
@@ -13,6 +22,11 @@ export class KintoneFieldsRetriever {
     this.app = appId;
   }
 
+  /**
+   * スペース項目取得
+   * @param noBlank 空白行なしとする（指定しない場合は空白行あり）
+   * @returns
+   */
   public getRecordSpaceFields = async (
     noBlank = false,
   ): Promise<SelectOption[]> => {
@@ -34,6 +48,11 @@ export class KintoneFieldsRetriever {
     return this.addBlankIfNeeded(spacers, noBlank);
   };
 
+  /**
+   * １行テキスト項目取得
+   * @param noBlank 空白行なしとする（指定しない場合は空白行あり）
+   * @returns
+   */
   public getSingleTextFields = async (
     noBlank = false,
   ): Promise<SelectOption[]> => {
@@ -49,6 +68,11 @@ export class KintoneFieldsRetriever {
     return this.addBlankIfNeeded(singleLineTextFields, noBlank);
   };
 
+  /**
+   * 一覧名取得
+   * @param noBlank 空白行なしとする（指定しない場合は空白行あり）
+   * @returns
+   */
   public getViewNames = async (noBlank = false): Promise<SelectOption[]> => {
     const response = await this.client.app.getViews({
       app: this.app,
@@ -60,6 +84,12 @@ export class KintoneFieldsRetriever {
     return this.addBlankIfNeeded(viewNames, noBlank);
   };
 
+  /**
+   * 選択肢に空白行を追加する
+   * @param list 選択肢
+   * @param noBlank 空白行なしとする（指定しない場合は空白行あり）
+   * @returns
+   */
   private addBlankIfNeeded = (
     list: SelectOption[],
     noBlank: boolean,
