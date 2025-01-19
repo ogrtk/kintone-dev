@@ -1,0 +1,8 @@
+.git/
+node_modules/
+.pnpm-store/
+certificate/
+public/
+dist/
+.secrets
+.npmrc

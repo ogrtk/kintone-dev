@@ -1,0 +1,26 @@
+{
+	"name": "Debian",
+	"dockerComposeFile": [
+		"./docker-compose.yml"
+	],
+	"service": "dev",
+	"mounts": [
+		"source=${localWorkspaceFolder},target=${localWorkspaceFolder},type=bind,consistency=delegated"
+	],
+	"workspaceFolder": "${localWorkspaceFolder}",
+	"features": {
+		"ghcr.io/devcontainers-extra/features/pnpm:2": {}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"Gruntfuggly.todo-tree",
+				"MS-CEINTL.vscode-language-pack-ja",
+				"ChakrounAnas.turbo-console-log",
+				"styled-components.vscode-styled-components",
+				"biomejs.biome",
+				"steoates.autoimport"
+			]
+		}
+	}
+}

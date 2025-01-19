@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "lib": [
+      "ESNext",
+      "DOM"
+    ],
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    },
+    "outDir": "dist",
+    "declaration": true, // 型定義ファイルを生成
+    "declarationDir": "dist", // 型定義ファイルの出力先 
+  },
+  "files": [
+    "../../node_modules/@kintone/dts-gen/kintone.d.ts"
+  ],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.mdx",
+    "global.d.ts"
+  ]
+}

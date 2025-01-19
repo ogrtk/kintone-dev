@@ -1,0 +1,25 @@
+{
+	"manifest_version": 1,
+	"version": "1.0.0",
+	"type": "APP",
+	"name": {
+		"ja": "QRコード読み取り kintoneプラグイン",
+		"en": "QRcode reader kintone plug-in"
+	},
+	"description": {
+		"ja": "QRコードを読み取るkintoneプラグインです。",
+		"en": "QRcode reader kintone plug-in"
+	},
+	"icon": "image/icon.png",
+	"desktop": {
+		"js": [
+			"js/desktop.js"
+		]
+	},
+	"config": {
+		"html": "html/config.html",
+		"js": [
+			"js/config.js"
+		]
+	}
+}

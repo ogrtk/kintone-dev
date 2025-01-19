@@ -1,0 +1,23 @@
+{
+	"name": "kintone-dev",
+	"version": "1.0.0",
+	"main": "index.js",
+	"scripts": {
+		"build": "pnpm --r run build"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"description": "",
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.4",
+		"@kintone/dts-gen": "^8.1.1",
+		"@ogrtk/kintone-api-plugin-uploader": "^0.8.0",
+		"@ogrtk/kintone-simple-plugin-packer": "^0.8.1",
+		"concurrently": "^9.1.0",
+		"esbuild": "^0.24.2",
+		"typescript": "^5.7.3",
+		"vite": "^6.0.5",
+		"vite-tsconfig-paths": "^5.1.4"
+	}
+}

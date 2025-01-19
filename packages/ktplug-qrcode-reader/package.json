@@ -1,0 +1,40 @@
+{
+  "name": "ktplug-qrcode-reader",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "check": "biome check --write",
+    "build:dev": "pnpm run check && vite build",
+    "dev": "concurrently 'pnpm run build:dev --watch' 'vite dev'",
+    "prebuild": "export $(cat ../../.secrets | xargs)",
+    "build": "pnpm run check && vite build && cp ./public/customize.js ./plugin/js/desktop.js && vite build --config vite.plugin.config.js && cp ./public/config.js ./plugin/js/config.js && kintone-simple-plugin-packer --i plugin --o dist/plugin.zip --ppk dist/private.ppk",
+    "deploy": "export $(cat ../../.secrets | xargs) && kintone-api-plugin-uploader -f dist/plugin.zip -i dist/pluginId.txt",
+    "band": "pnpm run build && pnpm run deploy"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@types/w3c-web-usb": "^1.0.10",
+    "@kintone/dts-gen": "^8.1.1",
+    "dotenv": "^16.4.7"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.9.1",
+    "@kintone/rest-api-client": "^5.6.0",
+    "html5-qrcode": "^2.3.8",
+    "i18next": "^24.2.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.54.2",
+    "zod": "^3.24.1",
+    "zod-i18n-map": "^2.27.0",
+    "@ogrtk/shared-components": "workspace:*",
+    "@ogrtk/shared-styles": "workspace:*"
+  }
+}

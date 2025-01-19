@@ -1,0 +1,14 @@
+{
+	"name": "fbcust-random-cd",
+	"version": "1.0.0",
+	"main": "index.js",
+	"type": "module",
+	"scripts": {
+		"check": "biome check --write",
+		"dev": "vite dev"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"description": ""
+}
