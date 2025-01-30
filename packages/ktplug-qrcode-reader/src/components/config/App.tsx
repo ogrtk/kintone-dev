@@ -6,6 +6,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   KintoneFieldsRetriever,
+  KintoneLikeBooleanCheckBox,
   KintoneLikeCheckBox,
   KintoneLikeSelect,
   KintoneLikeSingleText,
@@ -29,18 +30,16 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
     () => new KintoneFieldsRetriever(),
     [],
   );
+
   // 選択肢の項目用state
   const [textFields, setTextFields] = useState<SelectOption[]>([]);
   const [spaceFields, setSpaceFields] = useState<SelectOption[]>([]);
   const [viewNames, setViewNames] = useState<SelectOption[]>([]);
 
-  // pluginに保存した設定情報を取得
-  const config = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
-
   // react-hook-form
   const methods = useForm<PluginConfig>({
-    defaultValues: config,
-    resolver: zodResolver(pluginConfigSchema),
+    defaultValues: undefined,
+    resolver: zodResolver(pluginConfigSchema, undefined, { raw: false }),
   });
   const { handleSubmit, watch, reset } = methods;
 
@@ -55,6 +54,9 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
   );
 
   useEffect(() => {
+    // pluginに保存した設定情報を取得
+    const config = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
+
     // 選択肢の取得
     const fetchFieldsInfo = async () => {
       // スペース項目取得
@@ -71,11 +73,11 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
 
       // 動的に候補値を取得したselectについて、表示を正しくするためresetする
       // （useForm時点ではselectのlabelが存在しないため正しく表示できない）
-      reset();
+      reset(config);
     };
 
     fetchFieldsInfo();
-  }, [reset, kintoneFieldsRetriever]);
+  }, [PLUGIN_ID, reset, kintoneFieldsRetriever]);
 
   /**
    * フォーム内容送信処理
@@ -134,32 +136,32 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
             required
           />
 
-          <KintoneLikeCheckBox
+          <KintoneLikeBooleanCheckBox
             rhfMethods={methods}
-            label="登録前確認"
-            description="読取結果登録時、登録前に確認ダイアログを表示するかどうかを指定してください。"
+            label="追加設定値の利用"
+            description="読取結果登録時、追加で値を設定する場合はチェックしてください。"
+            checkBoxLabel="利用する"
             name="useCase.listRegist.useAdditionalValues"
-            options={[{ code: "on", label: "利用する" }]}
-            noSpecifyValue
           />
 
-          <KintoneLikeTable
-            rhfMethods={methods}
-            label="追加設定値"
-            description="QRコードの値以外に、追加で指定する値を指定してください。"
-            name="useCase.listRegist.additionalValues"
-            defaultValue={{ field: "", value: "" }}
-            fieldMetas={[
-              {
-                type: "select",
-                key: "field",
-                label: "フィールドコード",
-                options: textFields,
-              },
-              { type: "singletext", key: "value", label: "設定値" },
-            ]}
-            visible={useRegistAdditinalValues}
-          />
+          {useRegistAdditinalValues && (
+            <KintoneLikeTable
+              rhfMethods={methods}
+              label="追加設定値"
+              description="QRコードの値以外に、追加で設定する値を指定してください。"
+              name="useCase.listRegist.additionalValues"
+              defaultValue={{ field: "", value: "" }}
+              fieldMetas={[
+                {
+                  type: "select",
+                  key: "field",
+                  label: "フィールドコード",
+                  options: textFields,
+                },
+                { type: "singletext", key: "value", label: "設定値" },
+              ]}
+            />
+          )}
         </>
       )}
 
@@ -179,9 +181,26 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
 
           <KintoneLikeSingleText
             rhfMethods={methods}
-            label="絞り込み条件"
+            label="追加絞込条件"
             description="QRコードの値以外に、追加で指定する絞込条件を指定してください。"
             name="useCase.listUpdate.additionalQuery"
+          />
+
+          <KintoneLikeTable
+            rhfMethods={methods}
+            label="更新値"
+            description="QRコードの値以外に、追加で設定する値を指定してください。"
+            name="useCase.listUpdate.updateValues"
+            defaultValue={{ field: "", value: "" }}
+            fieldMetas={[
+              {
+                type: "select",
+                key: "field",
+                label: "フィールドコード",
+                options: textFields,
+              },
+              { type: "singletext", key: "value", label: "設定値" },
+            ]}
           />
         </>
       )}
@@ -198,13 +217,6 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
             name="useCase.record.space"
             options={spaceFields}
             required
-          />
-
-          <KintoneLikeSingleText
-            rhfMethods={methods}
-            label="絞り込み条件"
-            description="QRコードの値以外に、追加で指定する絞込条件を指定してください。"
-            name="useCase.listUpdate.additionalQuery"
           />
         </>
       )}

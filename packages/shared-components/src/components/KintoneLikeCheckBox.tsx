@@ -8,7 +8,6 @@ type KintoneLikeCheckBoxProps<T extends FieldValues> = {
   description: string;
   name: Path<T>;
   options: readonly { code: string; label: string }[];
-  noSpecifyValue?: boolean;
   required?: boolean;
 };
 
@@ -18,7 +17,6 @@ export function KintoneLikeCheckBox<T extends FieldValues>({
   description,
   name,
   options,
-  noSpecifyValue = false,
   required,
 }: KintoneLikeCheckBoxProps<T>) {
   const {
@@ -39,7 +37,7 @@ export function KintoneLikeCheckBox<T extends FieldValues>({
             <span className="kintoneplugin-input-checkbox-item">
               <input
                 type="checkbox"
-                value={noSpecifyValue ? undefined : option.code}
+                value={option.code}
                 id={`${name}-${option.code}`}
                 {...register(name)}
               />

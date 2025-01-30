@@ -1,9 +1,13 @@
+import {
+  unsetBoolDependentField,
+  unsetLiteralsDependentField,
+} from "@ogrtk/shared-components";
 import i18next from "i18next";
 import { z } from "zod";
 import { zodI18nMap } from "zod-i18n-map";
-// Import your language translation files
 import translation from "zod-i18n-map/locales/ja/zod.json";
-// lng and resources key depend on your locale.
+
+// zodエラーメッセージの日本語化
 i18next.init({
   lng: "ja",
   resources: {
@@ -13,15 +17,6 @@ i18next.init({
 z.setErrorMap(zodI18nMap);
 
 /**
- * kintoneアプリのレコードを表す型
- */
-export type KintoneRecord = {
-  [fieldCode: string]: {
-    value: unknown;
-  };
-};
-
-/**
  * 用途種別選択肢
  */
 export const USECASE_TYPE_SELECTIONS = [
@@ -29,20 +24,17 @@ export const USECASE_TYPE_SELECTIONS = [
   { code: "listRegist", label: "一覧での登録" },
   { code: "listUpdate", label: "一覧での更新" },
   { code: "record", label: "詳細画面" },
-];
-
-// /**
-//  *  0以上の整数スキーマ（preprocessにより入力文字列を数値とする）
-//  */
-// const geZeroIntSchema = z.preprocess((val) => {
-//   if (typeof val === "number") {
-//     return val;
-//   }
-//   return val ? Number(val) : undefined;
-// }, z.number().int().min(0));
+] as const;
 
 /**
- * 用途別設定スキーマ（一覧検索）
+ * レコード編集設定のスキーマ
+ */
+const recordEditSchema = z
+  .array(z.object({ field: z.string().nonempty(), value: z.any() }))
+  .min(1);
+
+/**
+ * 用途種別の設定スキーマ（一覧検索）
  */
 const listSearchConfigSchema = z.object({
   targetViewName: z.string().nonempty(),
@@ -50,27 +42,39 @@ const listSearchConfigSchema = z.object({
 });
 
 /**
- * 用途別設定スキーマ（一覧登録）
+ * 用途種別の設定スキーマ（一覧登録）
+ * preprocess無しの型表現
  */
-const listRegistConfigSchema = z.object({
+const listRegistConfigSchemaCore = z.object({
   targetViewName: z.string().nonempty(),
   useAdditionalValues: z.boolean(),
-  additionalValues: z
-    .array(z.object({ field: z.string().nonempty(), value: z.any() }))
-    .optional(),
+  additionalValues: recordEditSchema.optional(),
 });
+type ListRegistConfigCore = z.infer<typeof listRegistConfigSchemaCore>;
+/**
+ * 用途種別の設定スキーマ（一覧登録）
+ */
+const listRegistConfigSchema = z.preprocess(
+  unsetBoolDependentField<ListRegistConfigCore>([
+    {
+      conditionField: "useAdditionalValues",
+      dependentField: "additionalValues",
+    },
+  ]),
+  listRegistConfigSchemaCore,
+);
 
 /**
- * 用途別設定スキーマ（一覧更新）
+ * 用途種別の設定スキーマ（一覧更新）
  */
 const listUpdateConfigSchema = z.object({
   targetViewName: z.string().nonempty(),
   additionalQuery: z.string().optional(),
-  update: z.array(z.object({ field: z.string(), value: z.any() })),
+  updateValues: recordEditSchema,
 });
 
 /**
- * 用途別設定スキーマ（レコード）
+ * 用途種別の設定スキーマ（レコード）
  */
 const recordConfigSchema = z.object({
   space: z.string(),
@@ -79,42 +83,83 @@ const recordConfigSchema = z.object({
 /**
  * 用途種別スキーマ
  */
-const useCaseTypeSchema = z
-  .literal("listSearch")
-  .or(z.literal("listRegist"))
-  .or(z.literal("listUpdate"))
-  .or(z.literal("record"));
-
-type UseCaseType = z.infer<typeof useCaseTypeSchema>;
+const useCaseTypes = USECASE_TYPE_SELECTIONS.map(({ code }) => code) as [
+  (typeof USECASE_TYPE_SELECTIONS)[number]["code"],
+  ...(typeof USECASE_TYPE_SELECTIONS)[number]["code"][],
+];
+const useCaseTypeSchema = z.enum(useCaseTypes);
 
 /**
- * 用途種別設定スキーマ
+ * 異なる対象一覧が設定されていることを確認するバリデーション
+ * @param value
+ * @returns
  */
-const useCaseSchema = z
-  .object({
-    types: z.array(useCaseTypeSchema).min(1),
-    listSearch: listSearchConfigSchema.optional(),
-    listRegist: listRegistConfigSchema.optional(),
-    listUpdate: listUpdateConfigSchema.optional(),
-    record: recordConfigSchema.optional(),
-  })
-  // 設定されている用途種別の設定があることをチェック
-  .superRefine((data, ctx) => {
-    for (const useCaseType of [
-      "listSearch",
-      "listRegist",
-      "listUpdate",
-      "record",
-    ] as UseCaseType[]) {
-      if (data.types.includes(useCaseType) && data[useCaseType] === undefined) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `用途種別"${useCaseType}"の設定がありません`,
-          path: [useCaseType],
-        });
+function validateDifferentTargets(
+  ctx: z.RefinementCtx,
+  typeA: "listRegist" | "listSearch" | "listUpdate",
+  typeB: "listRegist" | "listSearch" | "listUpdate",
+  data: UseCase,
+) {
+  if (
+    data.types.includes(typeA) &&
+    data.types.includes(typeB) &&
+    data[typeA]?.targetViewName === data[typeB]?.targetViewName
+  ) {
+    const msg = "別々の一覧を設定してください。";
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: msg,
+      path: [typeA, "targetViewName"],
+    });
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: msg,
+      path: [typeB, "targetViewName"],
+    });
+  }
+}
+
+/**
+ * 用途種別の設定スキーマ
+ * preprocess無しの型表現
+ */
+const useCaseSchemaCore = z.object({
+  types: z.array(useCaseTypeSchema).min(1),
+  listSearch: listSearchConfigSchema.optional(),
+  listRegist: listRegistConfigSchema.optional(),
+  listUpdate: listUpdateConfigSchema.optional(),
+  record: recordConfigSchema.optional(),
+});
+type UseCaseCore = z.infer<typeof useCaseSchemaCore>;
+
+/**
+ * 用途種別の設定スキーマ
+ */
+const useCaseSchema = z.preprocess(
+  unsetLiteralsDependentField<UseCaseCore>("types", useCaseTypes),
+  useCaseSchemaCore
+    // 設定されている用途種別の設定があることをチェック
+    .superRefine((data, ctx) => {
+      for (const useCaseType of useCaseTypes) {
+        if (
+          data.types.includes(useCaseType) &&
+          data[useCaseType] === undefined
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `用途種別"${useCaseType}"の設定がありません`,
+            path: [useCaseType],
+          });
+        }
       }
-    }
-  });
+
+      // 検索・登録・更新の一覧で、同じ一覧が指定されていないこと
+      validateDifferentTargets(ctx, "listRegist", "listSearch", data);
+      validateDifferentTargets(ctx, "listRegist", "listUpdate", data);
+      validateDifferentTargets(ctx, "listSearch", "listUpdate", data);
+    }),
+);
+type UseCase = z.infer<typeof useCaseSchema>;
 
 /**
  * 読み取りデータ設定スキーマ
@@ -126,14 +171,10 @@ const qrCodeConfigSchema = z.object({
 export type QrCodeConfig = z.infer<typeof qrCodeConfigSchema>;
 
 /**
- * カードリーダープラグインの設定情報スキーマ
+ * プラグインの設定情報スキーマ
  */
 export const pluginConfigSchema = z.object({
   useCase: useCaseSchema,
   qrCode: qrCodeConfigSchema,
 });
-
-/**
- * カードリーダープラグインの設定情報
- */
 export type PluginConfig = z.infer<typeof pluginConfigSchema>;

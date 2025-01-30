@@ -43,7 +43,6 @@ export function KintoneLikeSelect<T extends FieldValues>({
         register={register}
         errors={errors}
       />
-      <ErrorMessage path={name} errors={errors} />
     </div>
   );
 }

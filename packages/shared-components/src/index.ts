@@ -1,5 +1,8 @@
 export * from "./lib/pluginConfigUtils";
+export * from "./lib/kintoneUtils";
+export * from "./lib/zodUtils";
 export { KintoneLikeCheckBox } from "./components/KintoneLikeCheckBox";
+export { KintoneLikeBooleanCheckBox } from "./components/KintoneLikeBooleanCheckBox";
 export { KintoneLikeRadio } from "./components/KintoneLikeRadio";
 export { KintoneLikeSelect } from "./components/KintoneLikeSelect";
 export { KintoneLikeSingleText } from "./components/KintoneLikeSingleText";

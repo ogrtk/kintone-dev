@@ -3,14 +3,12 @@ import {
   type FieldArrayPathValue,
   type FieldValues,
   type Path,
-  type PathValue,
   type UseFormReturn,
   useFieldArray,
 } from "react-hook-form";
 // TODO: テーブル全体のエラー表示
 import { ErrorMessage } from "./ErrorMessage";
 import "@ogrtk/shared-styles";
-import { useEffect, useRef } from "react";
 import { KintoneLikeSelectWithoutLabel } from "./KintoneLikeSelect";
 import { KintoneLikeSingleTextWithoutLabel } from "./KintoneLikeSingleText";
 
@@ -38,7 +36,6 @@ type KintoneLikeTableProps<T extends FieldValues, K extends ArrayPath<T>> = {
   name: K;
   fieldMetas: FieldMeta[];
   defaultValue: Exclude<FieldArrayPathValue<T, K>, undefined>[number];
-  visible?: boolean;
   required?: boolean;
 };
 
@@ -52,51 +49,33 @@ export function KintoneLikeTable<
   name,
   fieldMetas,
   defaultValue,
-  visible = true,
   required,
 }: KintoneLikeTableProps<T, K>) {
-  const preservedRef = useRef<PathValue<T, K> | undefined>(undefined);
   const {
     register,
     formState: { errors },
     control,
-    getValues,
-    setValue,
   } = rhfMethods;
   const { fields, append, remove } = useFieldArray<T>({
     control,
     name: name,
   });
 
-  if (visible && fields.length === 0) {
+  if (fields.length === 0) {
     append(defaultValue);
   }
 
-  useEffect(() => {
-    if (visible) {
-      console.log("open");
-
-      setValue(name as Path<T>, preservedRef.current as PathValue<T, Path<T>>);
-      console.log(getValues(name as Path<T>));
-    } else {
-      console.log("closed");
-
-      preservedRef.current = getValues(name as Path<T>);
-      setValue(name as Path<T>, undefined as PathValue<T, Path<T>>);
-      console.log(getValues(name as Path<T>));
-    }
-  }, [visible, name, setValue, getValues]);
-
   return (
     <>
-      <div className="setting" style={{ display: visible ? "block" : "none" }}>
-        <label className="kintoneplugin-label" htmlFor={name}>
+      <div className="setting">
+        {/* biome-ignore lint/a11y/noLabelWithoutControl: label by aria */}
+        <label id={name} className="kintoneplugin-label">
           {label}
           {required && <span className="kintoneplugin-require"> * </span>}
         </label>
         <div className="kintoneplugin-desc">{description}</div>
 
-        <table className="kintoneplugin-table">
+        <table aria-labelledby={name} className="kintoneplugin-table">
           <thead>
             <tr>
               {fieldMetas.map((fieldMeta) => (
