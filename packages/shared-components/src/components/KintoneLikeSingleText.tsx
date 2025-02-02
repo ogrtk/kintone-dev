@@ -14,6 +14,7 @@ type KintoneLikeSingleTextProps<T extends FieldValues> = {
   description: string;
   name: Path<T>;
   required?: boolean;
+  style?: React.CSSProperties;
 };
 
 export function KintoneLikeSingleText<T extends FieldValues>({
@@ -22,6 +23,7 @@ export function KintoneLikeSingleText<T extends FieldValues>({
   description,
   name,
   required,
+  style,
 }: KintoneLikeSingleTextProps<T>) {
   const {
     register,
@@ -37,6 +39,7 @@ export function KintoneLikeSingleText<T extends FieldValues>({
       <div className="kintoneplugin-desc">{description}</div>
       <KintoneLikeSingleTextWithoutLabel
         name={name}
+        style={style}
         register={register}
         errors={errors}
       />
@@ -48,11 +51,13 @@ type KintoneLikeSingleTextWithoutLabelProps<T extends FieldValues> = {
   name: Path<T>;
   register: UseFormRegister<T>;
   errors: FieldErrors<T>;
+  style?: React.CSSProperties;
 };
 export function KintoneLikeSingleTextWithoutLabel<T extends FieldValues>({
   name,
   register,
   errors,
+  style,
 }: KintoneLikeSingleTextWithoutLabelProps<T>) {
   return (
     <div className="kintoneplugin-input-outer">
@@ -60,6 +65,7 @@ export function KintoneLikeSingleTextWithoutLabel<T extends FieldValues>({
         id={name}
         className="kintoneplugin-input-text"
         type="text"
+        style={style}
         {...register(name)}
       />
       <ErrorMessage path={name} errors={errors} />

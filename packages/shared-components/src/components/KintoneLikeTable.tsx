@@ -9,6 +9,7 @@ import {
 // TODO: テーブル全体のエラー表示
 import { ErrorMessage } from "./ErrorMessage";
 import "@ogrtk/shared-styles";
+import type React from "react";
 import { KintoneLikeSelectWithoutLabel } from "./KintoneLikeSelect";
 import { KintoneLikeSingleTextWithoutLabel } from "./KintoneLikeSingleText";
 
@@ -16,6 +17,7 @@ type FieldMetaBase = {
   key: string;
   label: string;
   required?: boolean;
+  style?: React.CSSProperties;
 };
 
 type FieldMetaSingleText = {
@@ -111,6 +113,7 @@ export function KintoneLikeTable<
                                   name={`${name}.${index}.${key}` as Path<T>}
                                   register={register}
                                   errors={errors}
+                                  style={fieldMeta.style}
                                 />
                               </div>
                             </div>
@@ -126,6 +129,7 @@ export function KintoneLikeTable<
                                   options={fieldMeta.options}
                                   register={register}
                                   errors={errors}
+                                  style={fieldMeta.style}
                                 />
                               </div>
                             </div>

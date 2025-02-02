@@ -23,6 +23,18 @@ type KintoneLikeBooleanCheckBoxProps<
     }
   : never;
 
+type KintoneLikeBooleanCheckBoxWithoutLabelProps<
+  T extends FieldValues,
+  K extends Path<T>,
+> = PathValue<T, K> extends boolean
+  ? {
+      rhfMethods: UseFormReturn<T>;
+      checkBoxLabel: string;
+      name: K;
+      defaultValue?: boolean;
+    }
+  : never;
+
 export function KintoneLikeBooleanCheckBox<
   T extends FieldValues,
   K extends Path<T>,
@@ -35,6 +47,33 @@ export function KintoneLikeBooleanCheckBox<
   defaultValue,
   required,
 }: KintoneLikeBooleanCheckBoxProps<T, K>) {
+  return (
+    <div className="setting">
+      <p className="kintoneplugin-label">
+        {label}
+        {required && <span className="kintoneplugin-require"> * </span>}
+      </p>
+      <div className="kintoneplugin-desc">{description}</div>
+      <KintoneLikeBooleanCheckBoxWithoutLabel
+        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+        rhfMethods={rhfMethods as any}
+        checkBoxLabel={checkBoxLabel}
+        name={name}
+        defaultValue={defaultValue}
+      />
+    </div>
+  );
+}
+
+export function KintoneLikeBooleanCheckBoxWithoutLabel<
+  T extends FieldValues,
+  K extends Path<T>,
+>({
+  rhfMethods,
+  checkBoxLabel,
+  name,
+  defaultValue,
+}: KintoneLikeBooleanCheckBoxWithoutLabelProps<T, K>) {
   const {
     register,
     formState: { errors },
@@ -50,32 +89,25 @@ export function KintoneLikeBooleanCheckBox<
   useEffect(() => {
     const value = getValues(name);
     if (!value) {
-      setValue(name, (defaultValue ?? false) as PathValue<T, K>);
+      setValue(
+        name,
+        (defaultValue !== undefined ? defaultValue : false) as PathValue<T, K>,
+      );
     }
   }, [setValue, getValues, name, defaultValue]);
 
   return (
-    <div className="setting">
-      <p className="kintoneplugin-label">
-        {label}
-        {required && <span className="kintoneplugin-require"> * </span>}
-      </p>
-      <div className="kintoneplugin-desc">{description}</div>
-      <div className="kintoneplugin-input-checkbox">
-        <span className="kintoneplugin-input-checkbox-item">
-          <input
-            id={name}
-            type="checkbox"
-            checked={currentCheckValue}
-            onChange={(e) =>
-              setValue(name, e.target.checked as PathValue<T, K>)
-            }
-          />
-          <label htmlFor={name}>{checkBoxLabel}</label>
-        </span>
-        <input type="hidden" {...register(name)} />
-      </div>
-
+    <div className="kintoneplugin-input-checkbox">
+      <span className="kintoneplugin-input-checkbox-item">
+        <input
+          id={name}
+          type="checkbox"
+          checked={currentCheckValue}
+          onChange={(e) => setValue(name, e.target.checked as PathValue<T, K>)}
+        />
+        <label htmlFor={name}>{checkBoxLabel}</label>
+      </span>
+      <input type="hidden" {...register(name)} />
       <ErrorMessage path={name} errors={errors} />
     </div>
   );

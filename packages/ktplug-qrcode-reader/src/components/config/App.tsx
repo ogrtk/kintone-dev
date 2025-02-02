@@ -18,6 +18,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { type SubmitHandler, useForm } from "react-hook-form";
 import "@ogrtk/shared-styles";
+import { KintoneLikeBooleanCheckBoxWithoutLabel } from "@ogrtk/shared-components/dist/components/KintoneLikeBooleanCheckBox";
 
 /**
  * プラグイン設定画面
@@ -118,6 +119,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
             label="絞り込み条件"
             description="QRコードの値以外に、追加で指定する絞込条件を指定してください。"
             name="useCase.listSearch.additionalQuery"
+            style={{ width: "20em" }}
           />
         </>
       )}
@@ -158,7 +160,14 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
                   label: "フィールドコード",
                   options: textFields,
                 },
-                { type: "singletext", key: "value", label: "設定値" },
+                {
+                  type: "singletext",
+                  key: "value",
+                  label: "設定値",
+                  style: {
+                    width: "20em",
+                  },
+                },
               ]}
             />
           )}
@@ -212,8 +221,8 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
 
           <KintoneLikeSelect
             rhfMethods={methods}
-            label="一覧名"
-            description="機能を有効にする一覧の名称を指定してください。"
+            label="QRコードリーダー配置用スペース"
+            description="QRコードリーダーの配置場所となる詳細画面内のスペースを指定してください。"
             name="useCase.record.space"
             options={spaceFields}
             required

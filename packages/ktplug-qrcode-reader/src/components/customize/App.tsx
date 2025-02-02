@@ -1,5 +1,9 @@
-import type { KintoneRecord, PluginConfig } from "@/src/types";
-import { KintoneRestAPIClient } from "@kintone/rest-api-client";
+import type { PluginConfig } from "@/src/types";
+import {
+  type KintoneRecordField,
+  KintoneRestAPIClient,
+} from "@kintone/rest-api-client";
+import { type KintoneRecord, getRecordUrl } from "@ogrtk/shared-components";
 import { type QrReadedAction, QrReader } from "./QrReader";
 
 /**
@@ -93,6 +97,8 @@ async function regist(decodedText: string, config: PluginConfig) {
   const app = kintone.app.getId();
   if (!app) throw new Error("アプリIDが取得できません");
 
+  // TODO: 重複チェック
+
   const record: KintoneRecord = {};
   record[config.qrCode.field] = { value: decodedText };
   if (
@@ -109,7 +115,15 @@ async function regist(decodedText: string, config: PluginConfig) {
   alert("登録しました");
 }
 
+/**
+ * 更新処理
+ * @param decodedText QRコードから読み取ったデータ
+ * @param config プラグインの設定
+ * @returns
+ */
 async function update(decodedText: string, config: PluginConfig) {
+  if (!config.useCase.listUpdate) return;
+
   const confirmed = confirm(`読取結果（${decodedText}）。更新しますか？`);
   if (!confirmed) return;
 
@@ -118,49 +132,87 @@ async function update(decodedText: string, config: PluginConfig) {
   const app = kintone.app.getId();
   if (!app) throw new Error("アプリIDが取得できません");
 
-  const record: KintoneRecord = {};
-  // 追加絞込条件を加味して取得
-  const fetchedRecord = client.record.getRecords({ app, query: "" });
-  // 複数ある場合はエラー
+  // QRコードの読取値に加え、追加絞込条件を加味し、更新対象のレコードを取得
+  const additionalQuery = config.useCase.listUpdate.additionalQuery;
+  const query = `${config.qrCode.field} = "${decodedText}"${additionalQuery ? ` and ${additionalQuery}` : ""}`;
+  const fetchedRecords = await client.record.getRecords<
+    {
+      $id: KintoneRecordField.ID;
+    } & { [key: string]: KintoneRecordField.OneOf }
+  >({
+    app,
+    query,
+  });
+
+  // ない場合・複数ある場合はエラー
+  if (fetchedRecords.records.length === 0) {
+    alert(`対象のデータが存在しません(${decodedText})`);
+    return;
+  }
+  if (fetchedRecords.records.length > 1) {
+    alert(`更新できません：複数のデータが該当します(${decodedText})`);
+    return;
+  }
+  const fetchedRecord = fetchedRecords.records[0];
 
   // 更新
-
-  // record[config.qrCode.field] = { value: decodedText };
-  // if (
-  //   config.useCase.listUpdate?.additionalQuery &&
-  //   config.useCase.listUpdate.additionalQuery
-  // ) {
-  //   for (const additionalValue of config.useCase.listRegist.additionalValues) {
-  //     record[additionalValue.field] = { value: additionalValue.value };
-  //   }
-  // }
-  // console.log(record);
-  // await client.record.addRecord({ app, record });
+  const record: KintoneRecord = {};
+  for (const updateValue of config.useCase.listUpdate.updateValues) {
+    record[updateValue.field] = { value: updateValue.value };
+  }
+  await client.record.updateRecord({
+    app,
+    id: fetchedRecord.$id.value,
+    record: record,
+  });
 
   alert("更新しました");
 }
 
+/**
+ * 検索処理
+ * @param decodedText QRコードから読み取ったデータ
+ * @param config プラグインの設定
+ * @returns
+ */
 async function search(decodedText: string, config: PluginConfig) {
-  const confirmed = confirm(`読取結果（${decodedText}）。更新しますか？`);
-  if (!confirmed) return;
+  if (!config.useCase.listSearch) return;
 
   const client = new KintoneRestAPIClient();
 
   const app = kintone.app.getId();
   if (!app) throw new Error("アプリIDが取得できません");
 
-  const record: KintoneRecord = {};
-  // record[config.qrCode.field] = { value: decodedText };
-  // if (
-  //   config.useCase.listUpdate?.additionalQuery &&
-  //   config.useCase.listUpdate.additionalQuery
-  // ) {
-  //   for (const additionalValue of config.useCase.listRegist.additionalValues) {
-  //     record[additionalValue.field] = { value: additionalValue.value };
-  //   }
-  // }
-  // console.log(record);
-  // await client.record.addRecord({ app, record });
+  // QRコードの読取値に加え、追加絞込条件を加味し、更新対象のレコードを取得
+  const additionalQuery = config.useCase.listSearch.additionalQuery;
+  const query = `${config.qrCode.field} = "${decodedText}"${additionalQuery ? ` and ${additionalQuery}` : ""}`;
+  const fetchedRecords = await client.record.getRecords<
+    {
+      $id: KintoneRecordField.ID;
+    } & { [key: string]: KintoneRecordField.OneOf }
+  >({
+    app,
+    query,
+  });
 
-  alert("登録しました");
+  // ない場合・複数ある場合はエラー
+  if (fetchedRecords.records.length === 0) {
+    alert(`対象のデータが存在しません(${decodedText})`);
+    return;
+  }
+  if (fetchedRecords.records.length > 1) {
+    alert(
+      `対象のデータを特定できません：複数のデータが該当します(${decodedText})`,
+    );
+    return;
+  }
+
+  // レコード詳細画面へ遷移
+  const fetchedRecord = fetchedRecords.records[0];
+  const recordShowUrl = getRecordUrl({
+    mode: "show",
+    app,
+    recordId: fetchedRecord.$id.value,
+  });
+  location.href = recordShowUrl;
 }

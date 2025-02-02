@@ -109,10 +109,10 @@ export class KintoneFieldsRetriever {
  * @param data
  * @param callback
  */
-export const storePluginConfig = <T>(data: T, callback: () => void) => {
+export function storePluginConfig<T>(data: T, callback: () => void) {
   const stringifiedData = { data: JSON.stringify(data) };
   kintone.plugin.app.setConfig(stringifiedData, callback);
-};
+}
 
 /**
  * プラグイン設定の復元

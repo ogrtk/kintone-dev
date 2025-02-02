@@ -19,11 +19,6 @@ export function KintoneLikeCheckBox<T extends FieldValues>({
   options,
   required,
 }: KintoneLikeCheckBoxProps<T>) {
-  const {
-    register,
-    formState: { errors },
-  } = rhfMethods;
-
   return (
     <div className="setting">
       <p className="kintoneplugin-label">
@@ -31,6 +26,32 @@ export function KintoneLikeCheckBox<T extends FieldValues>({
         {required && <span className="kintoneplugin-require"> * </span>}
       </p>
       <div className="kintoneplugin-desc">{description}</div>
+      <KintoneLikeCheckBoxWithoutLabel
+        name={name}
+        options={options}
+        rhfMethods={rhfMethods}
+      />
+    </div>
+  );
+}
+
+type KintoneLikeCheckBoxWithoutLabelProps<T extends FieldValues> = {
+  rhfMethods: UseFormReturn<T>;
+  name: Path<T>;
+  options: readonly { code: string; label: string }[];
+};
+
+export function KintoneLikeCheckBoxWithoutLabel<T extends FieldValues>({
+  rhfMethods,
+  name,
+  options,
+}: KintoneLikeCheckBoxWithoutLabelProps<T>) {
+  const {
+    register,
+    formState: { errors },
+  } = rhfMethods;
+  return (
+    <div className="setting">
       {options.map((option) => {
         return (
           <div key={option.code} className="kintoneplugin-input-checkbox">

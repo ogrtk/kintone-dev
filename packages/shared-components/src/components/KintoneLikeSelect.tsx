@@ -15,6 +15,7 @@ type KintoneLikeSelectProps<T extends FieldValues> = {
   name: Path<T>;
   options: { code: string; label: string }[];
   required?: boolean;
+  style?: React.CSSProperties;
 };
 
 export function KintoneLikeSelect<T extends FieldValues>({
@@ -24,6 +25,7 @@ export function KintoneLikeSelect<T extends FieldValues>({
   name,
   options,
   required,
+  style,
 }: KintoneLikeSelectProps<T>) {
   const {
     register,
@@ -42,6 +44,7 @@ export function KintoneLikeSelect<T extends FieldValues>({
         options={options}
         register={register}
         errors={errors}
+        style={style}
       />
     </div>
   );
@@ -52,6 +55,7 @@ type KintoneLikeSelectWithoutLabelProps<T extends FieldValues> = {
   options: { code: string; label: string }[];
   register: UseFormRegister<T>;
   errors: FieldErrors<T>;
+  style?: React.CSSProperties;
 };
 
 export function KintoneLikeSelectWithoutLabel<T extends FieldValues>({
@@ -59,11 +63,12 @@ export function KintoneLikeSelectWithoutLabel<T extends FieldValues>({
   options,
   register,
   errors,
+  style,
 }: KintoneLikeSelectWithoutLabelProps<T>) {
   return (
     <div className="kintoneplugin-select-outer">
       <div className="kintoneplugin-select">
-        <select {...register(name)} id={name}>
+        <select {...register(name)} id={name} style={style}>
           {options.map((item) => (
             <option key={item.code} value={item.code}>
               {item.label}
