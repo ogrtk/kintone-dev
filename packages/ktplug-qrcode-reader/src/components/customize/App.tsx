@@ -97,7 +97,27 @@ async function regist(decodedText: string, config: PluginConfig) {
   const app = kintone.app.getId();
   if (!app) throw new Error("アプリIDが取得できません");
 
-  // TODO: 重複チェック
+  // 重複チェック
+  if (config.useCase.listRegist?.noDuplicate) {
+    // QRコードの読取値に加え、追加絞込条件を加味し、重複チェック対象のレコードを取得
+    const additionalQuery =
+      config.useCase.listRegist?.duplicateCheckAdditionalQuery;
+    const query = `${config.qrCode.field} = "${decodedText}"${additionalQuery ? ` and ${additionalQuery}` : ""}`;
+    const fetchedRecords = await client.record.getRecords<
+      {
+        $id: KintoneRecordField.ID;
+      } & { [key: string]: KintoneRecordField.OneOf }
+    >({
+      app,
+      query,
+    });
+
+    // ある場合はエラー
+    if (fetchedRecords.records.length > 0) {
+      alert(`既にデータが存在します(${decodedText})`);
+      return;
+    }
+  }
 
   const record: KintoneRecord = {};
   record[config.qrCode.field] = { value: decodedText };
@@ -106,13 +126,15 @@ async function regist(decodedText: string, config: PluginConfig) {
     config.useCase.listRegist.additionalValues
   ) {
     for (const additionalValue of config.useCase.listRegist.additionalValues) {
-      record[additionalValue.field] = { value: additionalValue.value };
+      record[additionalValue.field] = JSON.parse(additionalValue.value);
     }
   }
   console.log(record);
   await client.record.addRecord({ app, record });
 
   alert("登録しました");
+
+  window.location.reload();
 }
 
 /**
@@ -158,7 +180,7 @@ async function update(decodedText: string, config: PluginConfig) {
   // 更新
   const record: KintoneRecord = {};
   for (const updateValue of config.useCase.listUpdate.updateValues) {
-    record[updateValue.field] = { value: updateValue.value };
+    record[updateValue.field] = JSON.parse(updateValue.value);
   }
   await client.record.updateRecord({
     app,
@@ -167,6 +189,8 @@ async function update(decodedText: string, config: PluginConfig) {
   });
 
   alert("更新しました");
+
+  window.location.reload();
 }
 
 /**

@@ -86,6 +86,55 @@ importers:
       '@types/react-dom':
         specifier: ^19.0.2
         version: 19.0.2(@types/react@19.0.4)
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.4.7
+
+  packages/ktplug-rcs300-felica-reader:
+    dependencies:
+      '@hookform/resolvers':
+        specifier: ^3.9.1
+        version: 3.10.0(react-hook-form@7.54.2(react@19.0.0))
+      '@kintone/rest-api-client':
+        specifier: ^5.6.0
+        version: 5.6.0
+      '@ogrtk/shared-components':
+        specifier: workspace:*
+        version: link:../shared-components
+      '@ogrtk/shared-styles':
+        specifier: workspace:*
+        version: link:../shared-styles
+      i18next:
+        specifier: ^24.2.0
+        version: 24.2.1(typescript@5.7.3)
+      react:
+        specifier: ^19.0.0
+        version: 19.0.0
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.0.0(react@19.0.0)
+      react-hook-form:
+        specifier: ^7.54.2
+        version: 7.54.2(react@19.0.0)
+      zod:
+        specifier: ^3.24.1
+        version: 3.24.1
+      zod-i18n-map:
+        specifier: ^2.27.0
+        version: 2.27.0(i18next@24.2.1(typescript@5.7.3))(zod@3.24.1)
+    devDependencies:
+      '@kintone/dts-gen':
+        specifier: ^8.1.1
+        version: 8.1.1(typescript@5.7.3)
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.10.5
+      '@types/react':
+        specifier: ^19.0.2
+        version: 19.0.4
+      '@types/react-dom':
+        specifier: ^19.0.2
+        version: 19.0.2(@types/react@19.0.4)
       '@types/w3c-web-usb':
         specifier: ^1.0.10
         version: 1.0.10

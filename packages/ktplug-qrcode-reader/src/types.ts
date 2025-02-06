@@ -1,4 +1,5 @@
 import {
+  refineJsonString,
   unsetBoolDependentField,
   unsetLiteralsDependentField,
 } from "@ogrtk/shared-components";
@@ -30,7 +31,14 @@ export const USECASE_TYPE_SELECTIONS = [
  * レコード編集設定のスキーマ
  */
 const recordEditSchema = z
-  .array(z.object({ field: z.string().nonempty(), value: z.any() }))
+  .array(
+    z.object({
+      field: z.string().nonempty(),
+      value: z
+        .string()
+        .refine(refineJsonString, "JSON形式の文字列としてください。"),
+    }),
+  )
   .min(1);
 
 /**
@@ -47,10 +55,13 @@ const listSearchConfigSchema = z.object({
  */
 const listRegistConfigSchemaCore = z.object({
   targetViewName: z.string().nonempty(),
+  noDuplicate: z.boolean(),
+  duplicateCheckAdditionalQuery: z.string().optional(),
   useAdditionalValues: z.boolean(),
   additionalValues: recordEditSchema.optional(),
 });
 type ListRegistConfigCore = z.infer<typeof listRegistConfigSchemaCore>;
+
 /**
  * 用途種別の設定スキーマ（一覧登録）
  */
@@ -59,6 +70,10 @@ const listRegistConfigSchema = z.preprocess(
     {
       conditionField: "useAdditionalValues",
       dependentField: "additionalValues",
+    },
+    {
+      conditionField: "noDuplicate",
+      dependentField: "duplicateCheckAdditionalQuery",
     },
   ]),
   listRegistConfigSchemaCore,

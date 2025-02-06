@@ -1,3 +1,6 @@
+import { getAsset } from "node:sea";
+import { z } from "zod";
+
 /**
  * オブジェクト型であるかを確認する型ガード
  * @param value 検証する値
@@ -122,4 +125,37 @@ export function textInputToNumber(value: unknown) {
     return value;
   }
   return value ? Number(value) : undefined;
+}
+
+export function refineJsonString(value: string) {
+  try {
+    JSON.parse(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 複数の preprocess を合成する関数
+ */
+export function combinePreprocesses(
+  ...processors: ((value: unknown) => unknown)[]
+) {
+  return (value: unknown) =>
+    processors.reduce((acc, processor) => processor(acc), value);
+}
+
+/**
+ *  入力文字列を数値に変換するスキーマ（preprocessにより入力文字列を数値とする）
+ */
+export function preprocessedNumberInputSchema(schema: z.ZodNumber) {
+  return z.preprocess((val) => {
+    if (typeof val === "number") return val;
+    if (typeof val === "string" && val.trim() !== "") {
+      const num = Number(val);
+      return Number.isNaN(num) ? undefined : num;
+    }
+    return undefined;
+  }, schema);
 }

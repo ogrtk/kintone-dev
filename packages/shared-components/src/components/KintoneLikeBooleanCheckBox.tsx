@@ -8,36 +8,26 @@ import { ErrorMessage } from "./ErrorMessage";
 import "@ogrtk/shared-styles";
 import { useEffect } from "react";
 
+type BooleanKeys<T> = {
+  [K in Path<T>]: PathValue<T, K> extends boolean ? K : never;
+}[Path<T>];
+
 type KintoneLikeBooleanCheckBoxProps<
   T extends FieldValues,
-  K extends Path<T>,
-> = PathValue<T, K> extends boolean
-  ? {
-      rhfMethods: UseFormReturn<T>;
-      label: string;
-      description: string;
-      checkBoxLabel: string;
-      name: K;
-      defaultValue?: boolean;
-      required?: boolean;
-    }
-  : never;
-
-type KintoneLikeBooleanCheckBoxWithoutLabelProps<
-  T extends FieldValues,
-  K extends Path<T>,
-> = PathValue<T, K> extends boolean
-  ? {
-      rhfMethods: UseFormReturn<T>;
-      checkBoxLabel: string;
-      name: K;
-      defaultValue?: boolean;
-    }
-  : never;
+  K extends BooleanKeys<T>,
+> = {
+  rhfMethods: UseFormReturn<T>;
+  label: string;
+  description: string;
+  checkBoxLabel: string;
+  name: K;
+  defaultValue?: boolean;
+  required?: boolean;
+};
 
 export function KintoneLikeBooleanCheckBox<
   T extends FieldValues,
-  K extends Path<T>,
+  K extends BooleanKeys<T>,
 >({
   rhfMethods,
   label,
@@ -55,8 +45,7 @@ export function KintoneLikeBooleanCheckBox<
       </p>
       <div className="kintoneplugin-desc">{description}</div>
       <KintoneLikeBooleanCheckBoxWithoutLabel
-        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-        rhfMethods={rhfMethods as any}
+        rhfMethods={rhfMethods}
         checkBoxLabel={checkBoxLabel}
         name={name}
         defaultValue={defaultValue}
@@ -65,9 +54,19 @@ export function KintoneLikeBooleanCheckBox<
   );
 }
 
+type KintoneLikeBooleanCheckBoxWithoutLabelProps<
+  T extends FieldValues,
+  K extends BooleanKeys<T>,
+> = {
+  rhfMethods: UseFormReturn<T>;
+  checkBoxLabel: string;
+  name: K;
+  defaultValue?: boolean;
+};
+
 export function KintoneLikeBooleanCheckBoxWithoutLabel<
   T extends FieldValues,
-  K extends Path<T>,
+  K extends BooleanKeys<T>,
 >({
   rhfMethods,
   checkBoxLabel,

@@ -1,0 +1,13 @@
+.setting {
+  padding: 0 0 20px 0;
+}
+
+.message-normal-small {
+  position: relative;
+  display: block;
+  margin: 8px 0;
+  padding: 4px 18px;
+  background: transparent;
+  color: #3498db;
+  font-size: smaller;
+}

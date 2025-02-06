@@ -1,10 +1,26 @@
-import { KintoneRestAPIClient } from "@kintone/rest-api-client";
+import {
+  type KintoneRecordField,
+  KintoneRestAPIClient,
+} from "@kintone/rest-api-client";
 import type { ZodSchema, z } from "zod";
 
 /**
  * 選択肢の型
  */
 export type SelectOption = { code: string; label: string };
+
+type FieldWith<T extends string, V> = {
+  type: T;
+  value: V;
+};
+export type KintoneFieldTypeLiterals =
+  KintoneRecordField.OneOf extends FieldWith<
+    infer T,
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    any
+  >
+    ? T
+    : never;
 
 /**
  * kintoneのフィールド取得ユーティリティクラス
@@ -57,16 +73,30 @@ export class KintoneFieldsRetriever {
   public getSingleTextFields = async (
     noBlank = false,
   ): Promise<SelectOption[]> => {
+    return await this.getFields(["SINGLE_LINE_TEXT"], noBlank);
+  };
+
+  /**
+   * １行テキスト項目取得
+   * @param noBlank 空白行なしとする（指定しない場合は空白行あり）
+   * @returns
+   */
+  public getFields = async (
+    fieldTypes: KintoneFieldTypeLiterals[],
+    noBlank = false,
+  ): Promise<SelectOption[]> => {
     const fields = await this.client.app.getFormFields({
       app: this.app,
       preview: true,
     });
-    const singleLineTextFields = Object.entries(fields.properties)
-      .filter(([_key, value]) => value.type === "SINGLE_LINE_TEXT")
+    const extractedFields = Object.entries(fields.properties)
+      .filter(([_key, value]) =>
+        fieldTypes.includes(value.type as KintoneFieldTypeLiterals),
+      )
       .map((entry) => {
         return { label: entry[1].label, code: entry[1].code };
       });
-    return this.addBlankIfNeeded(singleLineTextFields, noBlank);
+    return this.addBlankIfNeeded(extractedFields, noBlank);
   };
 
   /**

@@ -18,7 +18,6 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { type SubmitHandler, useForm } from "react-hook-form";
 import "@ogrtk/shared-styles";
-import { KintoneLikeBooleanCheckBoxWithoutLabel } from "@ogrtk/shared-components/dist/components/KintoneLikeBooleanCheckBox";
 
 /**
  * プラグイン設定画面
@@ -33,7 +32,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
   );
 
   // 選択肢の項目用state
-  const [textFields, setTextFields] = useState<SelectOption[]>([]);
+  const [fields, setFields] = useState<SelectOption[]>([]);
   const [spaceFields, setSpaceFields] = useState<SelectOption[]>([]);
   const [viewNames, setViewNames] = useState<SelectOption[]>([]);
 
@@ -53,6 +52,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
   const useRegistAdditinalValues = watch(
     "useCase.listRegist.useAdditionalValues",
   );
+  const noDuplicate = watch("useCase.listRegist.noDuplicate");
 
   useEffect(() => {
     // pluginに保存した設定情報を取得
@@ -62,14 +62,24 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
     const fetchFieldsInfo = async () => {
       // スペース項目取得
       const spaceFields = await kintoneFieldsRetriever.getRecordSpaceFields();
-      // 1行テキスト取得
-      const singleTextFields =
-        await kintoneFieldsRetriever.getSingleTextFields();
+      // 項目取得
+      const fields = await kintoneFieldsRetriever.getFields([
+        "SINGLE_LINE_TEXT",
+        "DATE",
+        "DATETIME",
+        "CHECK_BOX",
+        "DROP_DOWN",
+        "MULTI_LINE_TEXT",
+        "MULTI_SELECT",
+        "NUMBER",
+        "RADIO_BUTTON",
+        "RICH_TEXT",
+      ]);
       // 一覧名取得
       const viewNames = await kintoneFieldsRetriever.getViewNames();
 
       setSpaceFields(spaceFields);
-      setTextFields(singleTextFields);
+      setFields(fields);
       setViewNames(viewNames);
 
       // 動的に候補値を取得したselectについて、表示を正しくするためresetする
@@ -93,6 +103,29 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
 
   return (
     <form onSubmit={handleSubmit(saveConfig)}>
+      {
+        <>
+          <p className="kintoneplugin-label">【読取データ設定】</p>
+          <KintoneLikeSingleText
+            rhfMethods={methods}
+            label="データ名称"
+            description="画面表示で利用するデータの名称を設定してください。"
+            name="qrCode.dataName"
+          />
+          <KintoneLikeSelect
+            rhfMethods={methods}
+            label="データ設定用項目"
+            description="読み取ったデータを編集するフィールドのフィールドコードを指定してください。"
+            name="qrCode.field"
+            options={fields}
+            required
+          />
+        </>
+      }
+
+      <hr />
+      <p className="kintoneplugin-label">【用途種別設定】</p>
+
       <KintoneLikeCheckBox
         rhfMethods={methods}
         label="用途種別選択"
@@ -102,8 +135,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
       />
       {listSearchEnabled && (
         <>
-          <hr />
-          <p className="kintoneplugin-label">【一覧での検索用設定】</p>
+          <p className="kintoneplugin-label">■一覧での検索用設定</p>
 
           <KintoneLikeSelect
             rhfMethods={methods}
@@ -117,7 +149,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
           <KintoneLikeSingleText
             rhfMethods={methods}
             label="絞り込み条件"
-            description="QRコードの値以外に、追加で指定する絞込条件を指定してください。"
+            description="QRコードの値以外に、追加で指定する絞込条件を指定してください（クエリの記法については、https://cybozu.dev/ja/kintone/docs/overview/query/ を参照）。"
             name="useCase.listSearch.additionalQuery"
             style={{ width: "20em" }}
           />
@@ -126,8 +158,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
 
       {listRegistEnabled && (
         <>
-          <hr />
-          <p className="kintoneplugin-label">【一覧での登録用設定】</p>
+          <p className="kintoneplugin-label">■一覧での登録用設定</p>
 
           <KintoneLikeSelect
             rhfMethods={methods}
@@ -137,6 +168,24 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
             options={viewNames}
             required
           />
+
+          <KintoneLikeBooleanCheckBox
+            rhfMethods={methods}
+            label="重複を許可しない"
+            description="QRコードから読み取ったデータについて、アプリ上での重複を禁止する場合はチェックしてください。"
+            checkBoxLabel="重複を許可しない"
+            name="useCase.listRegist.noDuplicate"
+          />
+
+          {noDuplicate && (
+            <KintoneLikeSingleText
+              rhfMethods={methods}
+              label="重複チェック時の追加検索条件"
+              description="QRコードの値以外に、追加で指定する検索条件を指定してください（クエリの記法については、https://cybozu.dev/ja/kintone/docs/overview/query/ を参照）。"
+              name="useCase.listRegist.duplicateCheckAdditionalQuery"
+              style={{ width: "20em" }}
+            />
+          )}
 
           <KintoneLikeBooleanCheckBox
             rhfMethods={methods}
@@ -150,7 +199,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
             <KintoneLikeTable
               rhfMethods={methods}
               label="追加設定値"
-              description="QRコードの値以外に、追加で設定する値を指定してください。"
+              description='QRコードの値以外に、追加で設定する値を指定してください（設定値については {"value": "登録値"}といったjson形式で設定。https://cybozu.dev/ja/kintone/docs/overview/field-types/#field-type-update を参照）。'
               name="useCase.listRegist.additionalValues"
               defaultValue={{ field: "", value: "" }}
               fieldMetas={[
@@ -158,7 +207,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
                   type: "select",
                   key: "field",
                   label: "フィールドコード",
-                  options: textFields,
+                  options: fields,
                 },
                 {
                   type: "singletext",
@@ -176,8 +225,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
 
       {listUpdateEnabled && (
         <>
-          <hr />
-          <p className="kintoneplugin-label">【一覧での更新用設定】</p>
+          <p className="kintoneplugin-label">■一覧での更新用設定</p>
 
           <KintoneLikeSelect
             rhfMethods={methods}
@@ -191,14 +239,15 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
           <KintoneLikeSingleText
             rhfMethods={methods}
             label="追加絞込条件"
-            description="QRコードの値以外に、追加で指定する絞込条件を指定してください。"
+            description="QRコードの値以外に、追加で指定する絞込条件を指定してください（クエリの記法については、https://cybozu.dev/ja/kintone/docs/overview/query/ を参照）。"
             name="useCase.listUpdate.additionalQuery"
+            style={{ width: "20em" }}
           />
 
           <KintoneLikeTable
             rhfMethods={methods}
             label="更新値"
-            description="QRコードの値以外に、追加で設定する値を指定してください。"
+            description='QRコードの値以外に、追加で設定する値を指定してください（設定値については {"value": "登録値"}といったjson形式で設定。https://cybozu.dev/ja/kintone/docs/overview/field-types/#field-type-update を参照）。'
             name="useCase.listUpdate.updateValues"
             defaultValue={{ field: "", value: "" }}
             fieldMetas={[
@@ -206,9 +255,14 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
                 type: "select",
                 key: "field",
                 label: "フィールドコード",
-                options: textFields,
+                options: fields,
               },
-              { type: "singletext", key: "value", label: "設定値" },
+              {
+                type: "singletext",
+                key: "value",
+                label: "設定値",
+                style: { width: "20em" },
+              },
             ]}
           />
         </>
@@ -216,8 +270,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
 
       {recordEnabled && (
         <>
-          <hr />
-          <p className="kintoneplugin-label">【詳細画面用設定】</p>
+          <p className="kintoneplugin-label">■詳細画面用設定</p>
 
           <KintoneLikeSelect
             rhfMethods={methods}
@@ -230,28 +283,6 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
         </>
       )}
 
-      {
-        <>
-          <hr />
-          <p className="kintoneplugin-label">【読取データ設定】</p>
-          <KintoneLikeSingleText
-            rhfMethods={methods}
-            label="データ名称"
-            description="画面表示で利用するデータの名称を設定してください。"
-            name="qrCode.dataName"
-          />
-          <KintoneLikeSelect
-            rhfMethods={methods}
-            label="データ設定用項目"
-            description="読み取ったデータを編集するフィールドのフィールドコードを指定してください。"
-            name="qrCode.field"
-            options={textFields}
-            required
-          />
-        </>
-      }
-
-      <hr />
       <input
         className="kintoneplugin-button-normal"
         type="submit"

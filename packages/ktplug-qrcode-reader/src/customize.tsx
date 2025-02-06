@@ -51,8 +51,8 @@ import { type PluginConfig, pluginConfigSchema } from "./types";
     // 設定取得
     const config = getConfig(PLUGIN_ID);
 
-    // 一覧画面用途とのモードを判定
-    let mode: IndexMode | undefined;
+    // 一覧画面用途のモードを判定
+    let mode: IndexMode | undefined = undefined;
     if (
       config.useCase.listRegist &&
       event.viewName === config.useCase.listRegist.targetViewName
