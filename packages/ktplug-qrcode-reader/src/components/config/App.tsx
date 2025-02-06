@@ -45,10 +45,18 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
 
   // 動的制御用の監視項目
   const useCaseTypes = watch("useCase.types");
-  const listSearchEnabled = useCaseTypes?.includes("listSearch");
-  const listRegistEnabled = useCaseTypes?.includes("listRegist");
-  const listUpdateEnabled = useCaseTypes?.includes("listUpdate");
-  const recordEnabled = useCaseTypes?.includes("record");
+  const listSearchEnabled = useCaseTypes
+    ? useCaseTypes.includes("listSearch")
+    : undefined;
+  const listRegistEnabled = useCaseTypes
+    ? useCaseTypes.includes("listRegist")
+    : undefined;
+  const listUpdateEnabled = useCaseTypes
+    ? useCaseTypes.includes("listUpdate")
+    : undefined;
+  const recordEnabled = useCaseTypes
+    ? useCaseTypes.includes("record")
+    : undefined;
   const useRegistAdditinalValues = watch(
     "useCase.listRegist.useAdditionalValues",
   );
