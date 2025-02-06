@@ -6,11 +6,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export default defineConfig({
-  // base: "./",
-  // build: {
-  // 	outDir: "dist",
-  // 	sourcemap: true,
-  // },
   server: {
     https: {
       cert: fs.readFileSync(

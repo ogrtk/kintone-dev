@@ -268,7 +268,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
               label="重複チェック時の追加検索条件"
               description="QRコードの値以外に、追加で指定する検索条件を指定してください（クエリの記法については、https://cybozu.dev/ja/kintone/docs/overview/query/ を参照）。"
               name="useCaseConfig.listRegist.duplicateCheckAdditionalQuery"
-              style={{ width: "20em" }}
+              style={{ width: "40em" }}
             />
           )}
 
@@ -341,7 +341,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
             label="追加絞込条件"
             description="QRコードの値以外に、追加で指定する絞込条件を指定してください（クエリの記法については、https://cybozu.dev/ja/kintone/docs/overview/query/ を参照）。"
             name="useCaseConfig.listUpdate.additionalQuery"
-            style={{ width: "20em" }}
+            style={{ width: "40em" }}
           />
 
           <KintoneLikeTable
@@ -361,7 +361,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
                 type: "singletext",
                 key: "value",
                 label: "設定値",
-                style: { width: "20em" },
+                style: { width: "40em" },
               },
             ]}
           />
