@@ -8,9 +8,9 @@
 
 | プロジェクト名                                                                   | 種別          | 説明                       |
 | ------------------------------------------------------------------------- | ----------- | ------------------------ |
-| [**ktplug-rcs300-felica-reader**](./releases/tag/fbcust-random-cd%401.0.0) | kintoneアプリ  | RCS300 FeliCa リーダー用プラグイン |
-| [**ktplug-qrcode-reader**](./releases/tag/ktplug-qrcode-reader%400.8.0)               | kintoneアプリ  | QRコードリーダー用プラグイン          |
-| [**fbcust-random-cd**](./releases/tag/fbcust-random-cd%400.8.0)                       | FormBridge用 | ランダムコード生成のカスタマイズ         |
+| [**ktplug-rcs300-felica-reader**](https://github.com/ogrtk/kintone-dev/releases/tag/fbcust-random-cd%401.0.0) | kintoneアプリ  | RCS300 FeliCa リーダー用プラグイン |
+| [**ktplug-qrcode-reader**](https://github.com/ogrtk/kintone-dev/releases/tag/ktplug-qrcode-reader%400.8.0)               | kintoneアプリ  | QRコードリーダー用プラグイン          |
+| [**fbcust-random-cd**](https://github.com/ogrtk/kintone-dev/releases/tag/fbcust-random-cd%400.8.0)                       | FormBridge用 | ランダムコード生成のカスタマイズ         |
 
 各プロジェクトの詳細については、それぞれの `README.md` を参照してください。
 
