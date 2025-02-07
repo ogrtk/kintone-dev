@@ -17,15 +17,12 @@ import { pluginConfigSchema } from "./types";
     ],
     (event) => {
       const config = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
-      if (
-        !config.useCaseConfig.types.includes("record") ||
-        !config.useCaseConfig.record
-      )
+      if (!config.useCase.types.includes("record") || !config.useCase.record)
         return;
 
-      const cardReaderBtnFieldCode = config.useCaseConfig.record.targetSpacer;
+      const cardReaderBtnFieldCode = config.useCase.record.targetSpacer;
       const el = kintone.app.record.getSpaceElement(
-        config.useCaseConfig.record.targetSpacer,
+        config.useCase.record.targetSpacer,
       );
       if (el) {
         const root = createRoot(el);
@@ -45,14 +42,14 @@ import { pluginConfigSchema } from "./types";
     // 一覧画面用途のモードを判定
     let mode: IndexMode | undefined = undefined;
     if (
-      config.useCaseConfig.listRegist &&
-      event.viewName === config.useCaseConfig.listRegist.targetViewName
+      config.useCase.listRegist &&
+      event.viewName === config.useCase.listRegist.targetViewName
     ) {
       mode = "regist";
     }
     if (
-      config.useCaseConfig.listUpdate &&
-      event.viewName === config.useCaseConfig.listUpdate.targetViewName
+      config.useCase.listUpdate &&
+      event.viewName === config.useCase.listUpdate.targetViewName
     ) {
       mode = "update";
     }

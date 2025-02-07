@@ -42,7 +42,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
 
   // 動的制御用の監視項目
   const readType = watch("readConfig.readType");
-  const useCaseType = watch("useCaseConfig.types");
+  const useCaseType = watch("useCase.types");
   const listRegistEnabled = useCaseType
     ? useCaseType.includes("listRegist")
     : undefined;
@@ -52,9 +52,9 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
   const recordEnabled = useCaseType
     ? useCaseType.includes("record")
     : undefined;
-  const noDuplicate = watch("useCaseConfig.listRegist.noDuplicate");
+  const noDuplicate = watch("useCase.listRegist.noDuplicate");
   const useRegistAdditinalValues = watch(
-    "useCaseConfig.listRegist.useAdditionalValues",
+    "useCase.listRegist.useAdditionalValues",
   );
 
   useEffect(() => {
@@ -236,7 +236,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
       <KintoneLikeCheckBox
         label="用途種別"
         description="カードリーダを利用する用途の種別を指定してください。"
-        name="useCaseConfig.types"
+        name="useCase.types"
         options={USECASE_TYPE_SELECTIONS}
         rhfMethods={methods}
         required
@@ -248,7 +248,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
           <KintoneLikeSelect
             label="一覧名"
             description="機能を有効にする一覧の名称を指定してください。"
-            name="useCaseConfig.listRegist.targetViewName"
+            name="useCase.listRegist.targetViewName"
             options={viewNames}
             rhfMethods={methods}
             required
@@ -259,7 +259,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
             label="重複を許可しない"
             description="カードから読み取ったデータについて、アプリ上での重複を禁止する場合はチェックしてください。"
             checkBoxLabel="重複を許可しない"
-            name="useCaseConfig.listRegist.noDuplicate"
+            name="useCase.listRegist.noDuplicate"
           />
 
           {noDuplicate && (
@@ -267,7 +267,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
               rhfMethods={methods}
               label="重複チェック時の追加検索条件"
               description="QRコードの値以外に、追加で指定する検索条件を指定してください（クエリの記法については、https://cybozu.dev/ja/kintone/docs/overview/query/ を参照）。"
-              name="useCaseConfig.listRegist.duplicateCheckAdditionalQuery"
+              name="useCase.listRegist.duplicateCheckAdditionalQuery"
               style={{ width: "40em" }}
             />
           )}
@@ -277,7 +277,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
             label="追加設定値の利用"
             description="読取結果登録時、追加で値を設定する場合はチェックしてください。"
             checkBoxLabel="利用する"
-            name="useCaseConfig.listRegist.useAdditionalValues"
+            name="useCase.listRegist.useAdditionalValues"
           />
 
           {useRegistAdditinalValues && (
@@ -285,7 +285,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
               rhfMethods={methods}
               label="追加設定値"
               description='QRコードの値以外に、追加で設定する値を指定してください（設定値については {"value": "登録値"}といったjson形式で設定。https://cybozu.dev/ja/kintone/docs/overview/field-types/#field-type-update を参照）。'
-              name="useCaseConfig.listRegist.additionalValues"
+              name="useCase.listRegist.additionalValues"
               defaultValue={{ field: "", value: "" }}
               fieldMetas={[
                 {
@@ -311,7 +311,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
             description="カード読取後、登録前に確認ダイアログを表示するかどうかを指定してください。"
             checkBoxLabel="表示する"
             rhfMethods={methods}
-            name="useCaseConfig.listRegist.confirmBefore"
+            name="useCase.listRegist.confirmBefore"
           />
 
           <KintoneLikeBooleanCheckBox
@@ -319,7 +319,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
             description="登録後に通知メッセージを表示するかどうかを指定してください。"
             checkBoxLabel="表示する"
             rhfMethods={methods}
-            name="useCaseConfig.listRegist.notifyAfter"
+            name="useCase.listRegist.notifyAfter"
           />
         </>
       )}
@@ -330,7 +330,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
           <KintoneLikeSelect
             label="一覧名"
             description="機能を有効にする一覧の名称を指定してください。"
-            name="useCaseConfig.listUpdate.targetViewName"
+            name="useCase.listUpdate.targetViewName"
             options={viewNames}
             rhfMethods={methods}
             required
@@ -340,7 +340,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
             rhfMethods={methods}
             label="追加絞込条件"
             description="QRコードの値以外に、追加で指定する絞込条件を指定してください（クエリの記法については、https://cybozu.dev/ja/kintone/docs/overview/query/ を参照）。"
-            name="useCaseConfig.listUpdate.additionalQuery"
+            name="useCase.listUpdate.additionalQuery"
             style={{ width: "40em" }}
           />
 
@@ -348,7 +348,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
             rhfMethods={methods}
             label="更新値"
             description='QRコードの値以外に、追加で設定する値を指定してください（設定値については {"value": "登録値"}といったjson形式で設定。https://cybozu.dev/ja/kintone/docs/overview/field-types/#field-type-update を参照）。'
-            name="useCaseConfig.listUpdate.updateValues"
+            name="useCase.listUpdate.updateValues"
             defaultValue={{ field: "", value: "" }}
             fieldMetas={[
               {
@@ -371,7 +371,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
             description="カード読取後、更新前に確認ダイアログを表示するかどうかを指定してください。"
             checkBoxLabel="表示する"
             rhfMethods={methods}
-            name="useCaseConfig.listUpdate.confirmBefore"
+            name="useCase.listUpdate.confirmBefore"
           />
 
           <KintoneLikeBooleanCheckBox
@@ -379,7 +379,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
             description="更新後に通知メッセージを表示するかどうかを指定してください。"
             checkBoxLabel="表示する"
             rhfMethods={methods}
-            name="useCaseConfig.listUpdate.notifyAfter"
+            name="useCase.listUpdate.notifyAfter"
           />
         </>
       )}
@@ -390,7 +390,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
           <KintoneLikeSelect
             label="カードリーダー実行用ボタンの配置スペース"
             description="カード読み取りの実行ボタンを配置するフォーム内のスペースを指定してください。"
-            name="useCaseConfig.record.targetSpacer"
+            name="useCase.record.targetSpacer"
             options={spaceFields}
             rhfMethods={methods}
             required

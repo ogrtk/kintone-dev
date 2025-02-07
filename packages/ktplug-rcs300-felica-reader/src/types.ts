@@ -247,7 +247,7 @@ const readConfigSchema = z.discriminatedUnion("readType", [
  * カードリーダープラグインの設定情報スキーマ
  */
 export const pluginConfigSchema = z.object({
-  useCaseConfig: useCaseSchema,
+  useCase: useCaseSchema,
   readConfig: readConfigSchema,
 });
 

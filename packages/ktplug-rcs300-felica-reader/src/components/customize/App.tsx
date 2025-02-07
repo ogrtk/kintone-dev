@@ -302,15 +302,15 @@ async function regist(
   config: PluginConfig,
 ) {
   if (
-    !config.useCaseConfig.types.includes("listRegist") ||
-    !config.useCaseConfig.listRegist
+    !config.useCase.types.includes("listRegist") ||
+    !config.useCase.listRegist
   )
     throw new Error("登録処理を行う設定になっていません。処理を中断します。");
 
   const msg = `(${felicaData.idm ? `IDm:${felicaData.idm} ` : ""}${felicaData.memory ? `memory:${felicaData.memory}` : ""})`;
 
   // 登録確認
-  if (config.useCaseConfig.listRegist.confirmBefore) {
+  if (config.useCase.listRegist.confirmBefore) {
     const confirmResult = confirm(`登録してよろしいですか？\n${msg}`);
     if (!confirmResult) {
       window.location.reload();
@@ -319,12 +319,12 @@ async function regist(
   }
 
   // 重複チェック
-  if (config.useCaseConfig.listRegist.noDuplicate) {
+  if (config.useCase.listRegist.noDuplicate) {
     const keyCriteria = constructKeyCriteria(config, felicaData);
 
     // カードからの読取値に加え、追加絞込条件を加味し、重複チェック対象のレコードを取得
     const additionalQuery =
-      config.useCaseConfig.listRegist.duplicateCheckAdditionalQuery;
+      config.useCase.listRegist.duplicateCheckAdditionalQuery;
     const query = `${keyCriteria}${additionalQuery ? ` and ${additionalQuery}` : ""}`;
     const fetchedRecords = await client.record.getRecords<
       {
@@ -363,12 +363,11 @@ async function regist(
     }
   }
   if (
-    config.useCaseConfig.listRegist.useAdditionalValues &&
-    config.useCaseConfig.listRegist.additionalValues
+    config.useCase.listRegist.useAdditionalValues &&
+    config.useCase.listRegist.additionalValues
   ) {
     // 追加項目の編集
-    for (const additionalValue of config.useCaseConfig.listRegist
-      .additionalValues) {
+    for (const additionalValue of config.useCase.listRegist.additionalValues) {
       record[additionalValue.field] = JSON.parse(additionalValue.value);
     }
   }
@@ -377,7 +376,7 @@ async function regist(
   try {
     await client.record.addRecord({ app, record });
 
-    if (config.useCaseConfig.listRegist.notifyAfter) {
+    if (config.useCase.listRegist.notifyAfter) {
       alert(`登録が完了しました\n${msg}`);
     }
     const autoRunUrl = `${window.location.href}&autorun=true`;
@@ -402,15 +401,15 @@ async function update(
   config: PluginConfig,
 ) {
   if (
-    !config.useCaseConfig.types.includes("listUpdate") ||
-    !config.useCaseConfig.listUpdate
+    !config.useCase.types.includes("listUpdate") ||
+    !config.useCase.listUpdate
   )
     throw new Error("更新処理を行う設定になっていません。処理を中断します。");
 
   const msg = `(${felicaData.idm ? `IDm:${felicaData.idm} ` : ""}${felicaData.memory ? `memory:${felicaData.memory}` : ""})`;
 
   // 続行確認
-  if (config.useCaseConfig.listUpdate.confirmBefore) {
+  if (config.useCase.listUpdate.confirmBefore) {
     const confirmResult = confirm(`更新してよろしいですか？\n${msg}`);
     if (!confirmResult) {
       window.location.reload();
@@ -420,7 +419,7 @@ async function update(
 
   // カードからの読取値に加え、追加絞込条件を加味し、更新対象のレコードを取得
   const keyCriteria = constructKeyCriteria(config, felicaData);
-  const additionalQuery = config.useCaseConfig.listUpdate.additionalQuery;
+  const additionalQuery = config.useCase.listUpdate.additionalQuery;
   const query = `${keyCriteria}${additionalQuery ? ` and ${additionalQuery}` : ""}`;
   const fetchedRecords = await client.record.getRecords<
     {
@@ -443,7 +442,7 @@ async function update(
 
   // 更新処理用にデータを編集
   const record: KintoneRecord = {};
-  for (const updateValue of config.useCaseConfig.listUpdate.updateValues) {
+  for (const updateValue of config.useCase.listUpdate.updateValues) {
     record[updateValue.field] = JSON.parse(updateValue.value);
   }
   // 更新処理
@@ -453,7 +452,7 @@ async function update(
       id: fetchedRecord.$id.value,
       record: record,
     });
-    if (config.useCaseConfig.listUpdate.notifyAfter) {
+    if (config.useCase.listUpdate.notifyAfter) {
       alert(`更新が完了しました\n${msg}`);
     }
     const autoRunUrl = `${window.location.href}&autorun=true`;
