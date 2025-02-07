@@ -1,4 +1,3 @@
-import { getAsset } from "node:sea";
 import { z } from "zod";
 
 /**

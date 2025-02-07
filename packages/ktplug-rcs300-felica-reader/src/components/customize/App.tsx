@@ -138,7 +138,7 @@ export function AppIndex({
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    // クエリパラメータを取得
+    // クエリパラメータにautorunが設定されている場合、カード読込を自動実行
     const searchParams = new URLSearchParams(window.location.search);
     const autorun = searchParams.get("autorun");
     if (autorun === "true") {
@@ -161,7 +161,7 @@ export function AppIndex({
       const felicaData = await readCard(setMessage, config);
       if (!felicaData) return;
 
-      // 処理
+      // 登録・更新処理
       switch (indexMode) {
         case "regist":
           await regist(app, felicaData, config);
@@ -384,6 +384,7 @@ async function regist(
     window.location.href = autoRunUrl;
   } catch (e: unknown) {
     alert("登録に失敗しました（重複登録の可能性があります）");
+    console.error((e as Error).message);
     window.location.reload();
   }
 }

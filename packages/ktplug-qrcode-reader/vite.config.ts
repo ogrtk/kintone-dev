@@ -25,7 +25,7 @@ export default defineConfig({
     },
   },
   server: {
-    https: baseConfig?.server?.https,
+    https: baseConfig.server?.https,
     open: path.join("public", "customize.js"),
     // publicディレクトリを監視対象に（更新時に開発サーバで読み込み直す）
     watch: {

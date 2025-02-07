@@ -63,11 +63,10 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
   const noDuplicate = watch("useCase.listRegist.noDuplicate");
 
   useEffect(() => {
-    // pluginに保存した設定情報を取得
-    const config = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
-
     // 選択肢の取得
     const fetchFieldsInfo = async () => {
+      // pluginに保存した設定情報を取得
+      const config = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
       // スペース項目取得
       const spaceFields = await kintoneFieldsRetriever.getRecordSpaceFields();
       // 項目取得
