@@ -6,3 +6,4 @@ public/
 dist/
 .secrets
 .npmrc
+memo/

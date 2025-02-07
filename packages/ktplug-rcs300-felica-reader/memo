@@ -1,9 +1,0 @@
-serviceCode :"0B20";
-
-blockListParam: {
-	accessMode: "normal",
-	blockNoStart: 0,
-	blockNoEnd: 5,
-},
-
-slice(4, 20)
