@@ -16,8 +16,10 @@
 		"@ogrtk/kintone-simple-plugin-packer": "^0.8.1",
 		"concurrently": "^9.1.0",
 		"esbuild": "^0.24.2",
+		"tsx": "^4.19.2",
 		"typescript": "^5.7.3",
 		"vite": "^6.1.0",
-		"vite-tsconfig-paths": "^5.1.4"
+		"vite-tsconfig-paths": "^5.1.4",
+		"vitest": "^3.0.5"
 	}
 }

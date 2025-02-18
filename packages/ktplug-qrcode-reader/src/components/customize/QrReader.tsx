@@ -1,10 +1,8 @@
 import { Html5QrcodeScanner } from "html5-qrcode";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "@ogrtk/shared-styles";
 
 const READER_ELEMENT_ID = "qr-reader";
-
-let scanner: Html5QrcodeScanner | undefined = undefined;
 
 const sleep = async (msec: number) => {
   return new Promise((resolve) => setTimeout(resolve, msec));
@@ -18,7 +16,7 @@ export type QrReadedAction = (decodedText: string) => void | Promise<void>;
 /**
  * QRコードリーダーのパラメータの型
  */
-export type QrReaderProps = {
+type QrReaderProps = {
   size: {
     height: string;
     width: string;
@@ -43,32 +41,34 @@ export function QrReader({ size, action, autoStart }: QrReaderProps) {
     autoStart ? "読み取り停止" : "読み取り開始",
   );
   const [readerDisplay, setReaderDisplay] = useState<"none" | "block">("none");
-  const [btnDisabled, setBtnDisabled] = useState<boolean>(false);
+  const scannerRef = useRef<Html5QrcodeScanner | undefined>(undefined); // ✅ useRef を使用
 
   /**
    * QRコードスキャナーを画面表示
    */
   const renderReader = useCallback((action: QrReadedAction) => {
+    setMessage("QRコードをカメラにかざしてください。");
+    setReaderDisplay("block");
+    setButtonLabel("読み取り停止");
+
     // QRコードスキャナのインスタンス化
-    scanner = new Html5QrcodeScanner(
+    scannerRef.current = new Html5QrcodeScanner(
       READER_ELEMENT_ID,
       { fps: 10, qrbox: { height: 250, width: 250 } },
       false,
     );
 
     // QRコードスキャナを画面表示
-    scanner.render(
+    scannerRef.current.render(
       async (decodedText, _decodedResult) => {
-        toggleQrReader(true);
         await action(decodedText);
+        await clearReader(true);
       },
       (error) => {
         console.warn(`QR Code scan error: ${error}`);
+        setMessage(`読み取りエラーが発生しました。(${error})`);
       },
     );
-    setMessage("QRコードをカメラにかざしてください。");
-    setReaderDisplay("block");
-    setButtonLabel("読み取り停止");
   }, []);
 
   /**
@@ -76,11 +76,11 @@ export function QrReader({ size, action, autoStart }: QrReaderProps) {
    */
   const clearReader = useCallback(async (readed = false) => {
     while (true) {
-      if (!scanner) return;
+      if (!scannerRef.current) return;
       try {
+        await scannerRef.current.clear();
         await sleep(1000);
-        await scanner.clear();
-        scanner = undefined;
+        scannerRef.current = undefined;
         break;
       } catch (e) {
         console.warn("retry clearing");
@@ -99,32 +99,27 @@ export function QrReader({ size, action, autoStart }: QrReaderProps) {
   /**
    * QRコードスキャナー表示を切り替え
    */
-  const toggleQrReader = useCallback(
-    async (readed = false) => {
-      if (scanner) {
-        await clearReader(readed);
-      } else {
-        renderReader(action);
-      }
-    },
-    [action, renderReader, clearReader],
-  );
+  const toggleQrReader = useCallback(async () => {
+    if (scannerRef.current) {
+      await clearReader(false);
+    } else {
+      renderReader(action);
+    }
+  }, [action, renderReader, clearReader]);
 
   /**
    * 初期表示時、autoStartが指定されていれば起動
    */
   useEffect(() => {
-    if (autoStart) toggleQrReader();
-  }, [toggleQrReader, autoStart]);
+    if (autoStart) renderReader(action);
+  }, [renderReader, action, autoStart]);
 
   /**
    * 読み取り開始・読み取り停止ボタン押下時の処理
    * （処理中はボタンを無効化する）
    */
   const onbtnClick = async () => {
-    setBtnDisabled(true);
     await toggleQrReader();
-    setBtnDisabled(false);
   };
 
   return (
@@ -133,12 +128,15 @@ export function QrReader({ size, action, autoStart }: QrReaderProps) {
         type="button"
         onClick={onbtnClick}
         className="kintoneplugin-button-normal"
-        disabled={btnDisabled}
       >
         {buttonLabel}
       </button>
-      <div className="message-normal message-large">{message}</div>
+
+      <output className="message-normal message-large">{message}</output>
+
       <div
+        role="application"
+        aria-label="QRコードスキャナー"
         id={READER_ELEMENT_ID}
         style={{
           width: size.width,

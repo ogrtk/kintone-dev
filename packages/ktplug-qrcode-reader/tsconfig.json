@@ -9,7 +9,8 @@
     "jsx": "react-jsx",
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    "esModuleInterop": true
   },
   "files": ["./node_modules/@kintone/dts-gen/kintone.d.ts"],
   "include": ["**/*.ts", "**/*.tsx", "**/*.mdx", "global.d.ts"]
