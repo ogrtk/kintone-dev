@@ -66,7 +66,6 @@ export function QrReader({ size, action, autoStart }: QrReaderProps) {
       },
       (error) => {
         console.warn(`QR Code scan error: ${error}`);
-        setMessage(`読み取りエラーが発生しました。(${error})`);
       },
     );
   }, []);

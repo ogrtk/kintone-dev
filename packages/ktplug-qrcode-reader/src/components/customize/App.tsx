@@ -129,7 +129,6 @@ async function regist(decodedText: string, config: PluginConfig) {
       record[additionalValue.field] = JSON.parse(additionalValue.value);
     }
   }
-  console.log(record);
   await client.record.addRecord({ app, record });
 
   alert("登録しました");
@@ -160,6 +159,7 @@ async function update(decodedText: string, config: PluginConfig) {
   const fetchedRecords = await client.record.getRecords<
     {
       $id: KintoneRecordField.ID;
+      $revision: KintoneRecordField.Revision;
     } & { [key: string]: KintoneRecordField.OneOf }
   >({
     app,
@@ -182,11 +182,19 @@ async function update(decodedText: string, config: PluginConfig) {
   for (const updateValue of config.useCase.listUpdate.updateValues) {
     record[updateValue.field] = JSON.parse(updateValue.value);
   }
-  await client.record.updateRecord({
-    app,
-    id: fetchedRecord.$id.value,
-    record: record,
-  });
+  try {
+    await client.record.updateRecord({
+      app,
+      id: fetchedRecord.$id.value,
+      revision: fetchedRecord.$revision.value,
+      record: record,
+    });
+  } catch (e) {
+    alert(
+      `更新処理中にエラーが発生しました(他ユーザの更新と競合した可能性があります)\n${(e as Error).message}`,
+    );
+    return;
+  }
 
   alert("更新しました");
 

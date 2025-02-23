@@ -4,8 +4,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
-    "test2": "tsx --test",
+    "test": "vitest",
     "check": "biome check --write",
     "build:dev": "pnpm run check && vite build",
     "dev": "concurrently 'pnpm run build:dev --watch' 'vite dev'",
@@ -19,21 +18,11 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
-    "@jest/globals": "^29.7.0",
     "@kintone/dts-gen": "^8.1.1",
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.2.0",
-    "@testing-library/user-event": "^14.6.1",
-    "@types/jest": "^29.5.14",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
-    "dotenv": "^16.4.7",
-    "identity-obj-proxy": "^3.0.0",
-    "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0",
-    "ts-jest": "^29.2.5",
-    "ts-jest-resolver": "^2.0.1"
+    "dotenv": "^16.4.7"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

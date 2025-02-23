@@ -136,7 +136,7 @@ export function KintoneLikeTable<
                           </td>
                         );
                       default:
-                        //TODO:
+                        //TODO: 他種類のコンポーネント追加
                         return <></>;
                     }
                   })}
