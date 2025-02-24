@@ -15,11 +15,7 @@ import { type PluginConfig, pluginConfigSchema } from "./types";
    * 追加・編集画面表示後イベント
    */
   kintone.events.on(
-    [
-      "app.record.edit.show",
-      "app.record.create.show",
-      "app.record.index.edit.show",
-    ],
+    ["app.record.edit.show", "app.record.create.show"],
     (event) => {
       // 設定取得
       const config = getConfig(PLUGIN_ID);
