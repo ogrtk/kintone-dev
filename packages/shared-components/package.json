@@ -4,6 +4,17 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./vitest": {
+      "import": "./src/vitest.d.ts",
+      "require": "./src/vitest.d.ts",
+      "types": "./src/vitest.d.ts"
+    }
+  },
   "scripts": {
     "build": "tsc"
   },

@@ -111,7 +111,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
   return (
     <form onSubmit={handleSubmit(saveConfig)}>
       {
-        <>
+        <section>
           <p className="kintoneplugin-label">【読取データ設定】</p>
           <KintoneLikeSingleText
             rhfMethods={methods}
@@ -127,7 +127,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
             options={fields}
             required
           />
-        </>
+        </section>
       }
 
       <hr />
@@ -141,7 +141,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
         options={USECASE_TYPE_SELECTIONS}
       />
       {listSearchEnabled && (
-        <>
+        <section>
           <p className="kintoneplugin-label">■一覧での検索用設定</p>
 
           <KintoneLikeSelect
@@ -160,11 +160,11 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
             name="useCase.listSearch.additionalQuery"
             style={{ width: "40em" }}
           />
-        </>
+        </section>
       )}
 
       {listRegistEnabled && (
-        <>
+        <section>
           <p className="kintoneplugin-label">■一覧での登録用設定</p>
 
           <KintoneLikeSelect
@@ -227,11 +227,11 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
               ]}
             />
           )}
-        </>
+        </section>
       )}
 
       {listUpdateEnabled && (
-        <>
+        <section>
           <p className="kintoneplugin-label">■一覧での更新用設定</p>
 
           <KintoneLikeSelect
@@ -272,11 +272,11 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
               },
             ]}
           />
-        </>
+        </section>
       )}
 
       {recordEnabled && (
-        <>
+        <section>
           <p className="kintoneplugin-label">■詳細画面用設定</p>
 
           <KintoneLikeSelect
@@ -287,7 +287,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
             options={spaceFields}
             required
           />
-        </>
+        </section>
       )}
 
       <input

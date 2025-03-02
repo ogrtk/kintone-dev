@@ -1,12 +1,12 @@
+import {
+  type QrReadedAction,
+  QrReader,
+} from "@/src/components/customize/QrReader";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { QrcodeErrorCallback, QrcodeSuccessCallback } from "html5-qrcode";
 import { Html5QrcodeErrorTypes } from "html5-qrcode/esm/core";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import {
-  type QrReadedAction,
-  QrReader,
-} from "../../src/components/customize/QrReader";
 import "@testing-library/jest-dom/vitest";
 
 vi.mock("@ogrtk/shared-styles", () => ({}));

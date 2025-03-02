@@ -39,10 +39,8 @@ export function KintoneLikeBooleanCheckBox<
 }: KintoneLikeBooleanCheckBoxProps<T, K>) {
   return (
     <div className="setting">
-      <p className="kintoneplugin-label">
-        {label}
-        {required && <span className="kintoneplugin-require"> * </span>}
-      </p>
+      <p className="kintoneplugin-label kintone-like-checkbox-group">{label}</p>
+      {required && <span className="kintoneplugin-require"> * </span>}
       <div className="kintoneplugin-desc">{description}</div>
       <KintoneLikeBooleanCheckBoxWithoutLabel
         rhfMethods={rhfMethods}
@@ -100,6 +98,7 @@ export function KintoneLikeBooleanCheckBoxWithoutLabel<
       <span className="kintoneplugin-input-checkbox-item">
         <input
           id={name}
+          className="kintone-like-input"
           type="checkbox"
           checked={currentCheckValue}
           onChange={(e) => setValue(name, e.target.checked as PathValue<T, K>)}

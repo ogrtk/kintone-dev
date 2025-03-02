@@ -34,8 +34,8 @@ export function KintoneLikeSingleText<T extends FieldValues>({
     <div className="setting">
       <label className="kintoneplugin-label" htmlFor={name}>
         {label}
-        {required && <span className="kintoneplugin-require"> * </span>}
       </label>
+      {required && <span className="kintoneplugin-require"> * </span>}
       <div className="kintoneplugin-desc">{description}</div>
       <KintoneLikeSingleTextWithoutLabel
         name={name}
@@ -63,7 +63,7 @@ export function KintoneLikeSingleTextWithoutLabel<T extends FieldValues>({
     <div className="kintoneplugin-input-outer">
       <input
         id={name}
-        className="kintoneplugin-input-text"
+        className="kintoneplugin-input-text kintone-like-input"
         type="text"
         style={style}
         {...register(name)}

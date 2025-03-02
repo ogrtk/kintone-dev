@@ -10,6 +10,7 @@ import {
 import { ErrorMessage } from "./ErrorMessage";
 import "@ogrtk/shared-styles";
 import type React from "react";
+import { Fragment } from "react";
 import { KintoneLikeSelectWithoutLabel } from "./KintoneLikeSelect";
 import { KintoneLikeSingleTextWithoutLabel } from "./KintoneLikeSingleText";
 
@@ -68,100 +69,96 @@ export function KintoneLikeTable<
   }
 
   return (
-    <>
-      <div className="setting">
-        {/* biome-ignore lint/a11y/noLabelWithoutControl: label by aria */}
-        <label id={name} className="kintoneplugin-label">
-          {label}
-          {required && <span className="kintoneplugin-require"> * </span>}
-        </label>
-        <div className="kintoneplugin-desc">{description}</div>
+    <div className="setting">
+      {/* biome-ignore lint/a11y/noLabelWithoutControl: label by aria */}
+      <label id={name} className="kintoneplugin-label">
+        {label}
+      </label>
+      {required && <span className="kintoneplugin-require"> * </span>}
+      <div className="kintoneplugin-desc">{description}</div>
 
-        <table aria-labelledby={name} className="kintoneplugin-table">
-          <thead>
-            <tr>
-              {fieldMetas.map((fieldMeta) => (
-                <>
-                  <th key={fieldMeta.key} className="kintoneplugin-table-th">
-                    <span className="title">{fieldMeta.label}</span>
-                  </th>
-                </>
-              ))}
-              <th className="kintoneplugin-table-th-blankspace" />
-            </tr>
-          </thead>
-          <tbody>
-            {fields.map((fieldObj, index) => (
-              <tr key={fieldObj.id}>
-                {Object.keys(fieldObj)
-                  .filter((key) => key !== "id")
-                  .map((key) => {
-                    const fieldMeta = fieldMetas.find(
-                      (meta) => meta.key === key,
-                    );
-                    if (!fieldMeta)
-                      throw new Error(
-                        `項目のメタデータが設定されていません:${key}`,
-                      );
-                    switch (fieldMeta.type) {
-                      case "singletext":
-                        return (
-                          <td key={key}>
-                            <div className="kintoneplugin-table-td-control">
-                              <div className="kintoneplugin-table-td-control-value">
-                                <KintoneLikeSingleTextWithoutLabel
-                                  name={`${name}.${index}.${key}` as Path<T>}
-                                  register={register}
-                                  errors={errors}
-                                  style={fieldMeta.style}
-                                />
-                              </div>
-                            </div>
-                          </td>
-                        );
-                      case "select":
-                        return (
-                          <td key={key}>
-                            <div className="kintoneplugin-table-td-control">
-                              <div className="kintoneplugin-table-td-control-value">
-                                <KintoneLikeSelectWithoutLabel
-                                  name={`${name}.${index}.${key}` as Path<T>}
-                                  options={fieldMeta.options}
-                                  register={register}
-                                  errors={errors}
-                                  style={fieldMeta.style}
-                                />
-                              </div>
-                            </div>
-                          </td>
-                        );
-                      default:
-                        //TODO: 他種類のコンポーネント追加
-                        return <></>;
-                    }
-                  })}
-                <td className="kintoneplugin-table-td-operation">
-                  <button
-                    className="kintoneplugin-button-remove-row-image"
-                    title="Delete this row"
-                    type="button"
-                    onClick={() => remove(index)}
-                  />
-
-                  {index === fields.length - 1 && (
-                    <button
-                      className="kintoneplugin-button-add-row-image"
-                      title="Add row"
-                      type="button"
-                      onClick={() => append([defaultValue])}
-                    />
-                  )}
-                </td>
-              </tr>
+      <table aria-labelledby={name} className="kintoneplugin-table">
+        <thead>
+          <tr>
+            {fieldMetas.map((fieldMeta) => (
+              <Fragment key={fieldMeta.key}>
+                <th key={fieldMeta.key} className="kintoneplugin-table-th">
+                  <span className="title">{fieldMeta.label}</span>
+                </th>
+              </Fragment>
             ))}
-          </tbody>
-        </table>
-      </div>
-    </>
+            <th className="kintoneplugin-table-th-blankspace" />
+          </tr>
+        </thead>
+        <tbody>
+          {fields.map((fieldObj, index) => (
+            <tr key={fieldObj.id}>
+              {Object.keys(fieldObj)
+                .filter((key) => key !== "id")
+                .map((key) => {
+                  const fieldMeta = fieldMetas.find((meta) => meta.key === key);
+                  if (!fieldMeta)
+                    throw new Error(
+                      `項目のメタデータが設定されていません:${key}`,
+                    );
+                  switch (fieldMeta.type) {
+                    case "singletext":
+                      return (
+                        <td key={`${key}-${fieldObj.id}`}>
+                          <div className="kintoneplugin-table-td-control">
+                            <div className="kintoneplugin-table-td-control-value">
+                              <KintoneLikeSingleTextWithoutLabel
+                                name={`${name}.${index}.${key}` as Path<T>}
+                                register={register}
+                                errors={errors}
+                                style={fieldMeta.style}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                      );
+                    case "select":
+                      return (
+                        <td key={`${key}-${fieldObj.id}`}>
+                          <div className="kintoneplugin-table-td-control">
+                            <div className="kintoneplugin-table-td-control-value">
+                              <KintoneLikeSelectWithoutLabel
+                                name={`${name}.${index}.${key}` as Path<T>}
+                                options={fieldMeta.options}
+                                register={register}
+                                errors={errors}
+                                style={fieldMeta.style}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                      );
+                    default:
+                      //TODO: 他種類のコンポーネント追加
+                      return <div key={key} />;
+                  }
+                })}
+              <td className="kintoneplugin-table-td-operation">
+                <button
+                  className="kintoneplugin-button-remove-row-image"
+                  title="Delete this row"
+                  type="button"
+                  onClick={() => remove(index)}
+                />
+
+                {index === fields.length - 1 && (
+                  <button
+                    className="kintoneplugin-button-add-row-image"
+                    title="Add row"
+                    type="button"
+                    onClick={() => append([defaultValue])}
+                  />
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

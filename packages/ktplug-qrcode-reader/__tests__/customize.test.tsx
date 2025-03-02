@@ -1,22 +1,52 @@
-import {
-  mockCreateRoot,
-  mockEventsOn,
-  mockGetHeaderSpaceElement,
-  mockGetSpaceElement,
-  mockRender,
-  mockRestorePluginConfig,
-} from "./customize.setup";
-import "../src/customize";
 import { AppIndex, AppRecord } from "@/src/components/customize/App";
+import type { PluginConfig } from "@/src/types";
+import { restorePluginConfig } from "@ogrtk/shared-components";
+import { createRoot } from "react-dom/client";
 import { type Mock, beforeEach, describe, expect, test, vi } from "vitest";
-import type { PluginConfig } from "../src/types";
+
+// `kintone` API をモック化
+globalThis.kintone = {
+  events: {
+    on: vi.fn(),
+  } as unknown as typeof kintone.events,
+  app: {
+    record: {
+      getSpaceElement: vi.fn(),
+    } as unknown as typeof kintone.app.record,
+    getHeaderSpaceElement: vi.fn(),
+  } as unknown as typeof kintone.app,
+  $PLUGIN_ID: "test_plugin",
+} as unknown as typeof kintone;
+
+// kintone api 利用コードをモック化後に読み込み
+await import("@/src/customize");
+
+// プラグインの設定をモック
+vi.mock("@ogrtk/shared-components", async () => {
+  const actual = await vi.importActual<
+    typeof import("@ogrtk/shared-components")
+  >("@ogrtk/shared-components");
+  return {
+    ...actual,
+    restorePluginConfig: vi.fn(),
+  };
+});
+
+// React の `createRoot` をモック
+vi.mock("react-dom/client", () => ({
+  createRoot: vi.fn(() => ({
+    render: vi.fn(),
+  })),
+}));
 
 beforeEach(() => {
-  mockCreateRoot.mockClear();
-  mockGetHeaderSpaceElement.mockClear();
-  mockGetSpaceElement.mockClear();
-  mockRender.mockClear();
-  mockRestorePluginConfig.mockClear();
+  // await import("@/src/customize");で実行された
+  // globalThis.kintone.events.on の呼出履歴が消去されてしまうため、
+  // vi.clearAllMocks();は使わずに、個別にmockClearする
+  (globalThis.kintone.app.getHeaderSpaceElement as Mock).mockClear();
+  (globalThis.kintone.app.record.getSpaceElement as Mock).mockClear();
+  (createRoot as Mock).mockClear();
+  (restorePluginConfig as Mock).mockClear();
 });
 
 describe("編集画面・追加画面のカスタマイズ処理", () => {
@@ -31,19 +61,27 @@ describe("編集画面・追加画面のカスタマイズ処理", () => {
         },
         qrCode: { dataName: "コード", field: "code" },
       };
-      mockRestorePluginConfig.mockReturnValue(mockConfig);
+      (restorePluginConfig as Mock).mockReturnValue(mockConfig);
       const mockElement = document.createElement("div");
-      mockGetSpaceElement.mockReturnValue(mockElement);
+      (globalThis.kintone.app.record.getSpaceElement as Mock).mockReturnValue(
+        mockElement,
+      );
 
       /* action */
-      const eventHandler = getHandler(mockEventsOn, eventName);
+      const eventHandler = getHandler(
+        globalThis.kintone.events.on as Mock,
+        eventName,
+      );
       const event = {}; // ダミーイベント
       eventHandler(event);
 
       /* assert */
-      expect(mockGetSpaceElement).toHaveBeenCalledWith("reader");
-      expect(mockCreateRoot).toHaveBeenCalledWith(mockElement);
-      expect(mockRender).toHaveBeenCalledWith(
+      expect(
+        globalThis.kintone.app.record.getSpaceElement as Mock,
+      ).toHaveBeenCalledWith("reader");
+      expect(createRoot as Mock).toHaveBeenCalledWith(mockElement);
+      const rootResult = (createRoot as Mock).mock.results[0].value;
+      expect(rootResult.render).toHaveBeenCalledWith(
         <AppRecord config={mockConfig} />,
       );
     },
@@ -57,17 +95,24 @@ describe("編集画面・追加画面のカスタマイズ処理", () => {
       },
       qrCode: { dataName: "コード", field: "code" },
     };
-    mockRestorePluginConfig.mockReturnValue(mockConfig);
+    (restorePluginConfig as Mock).mockReturnValue(mockConfig);
     // スペースが存在しないものとする
-    mockGetSpaceElement.mockReturnValue(null);
+    (globalThis.kintone.app.record.getSpaceElement as Mock).mockReturnValue(
+      null,
+    );
 
     /* action */
-    const eventHandler = getHandler(mockEventsOn, "app.record.edit.show");
+    const eventHandler = getHandler(
+      globalThis.kintone.events.on as Mock,
+      "app.record.edit.show",
+    );
     const event = {}; // ダミーイベント
     eventHandler(event);
 
     /* assert */
-    expect(mockGetSpaceElement).not.toHaveBeenCalled();
+    expect(
+      globalThis.kintone.app.record.getSpaceElement as Mock,
+    ).not.toHaveBeenCalled();
   });
 
   test("QRコードリーダーの設置スペースが存在しない場合はエラー", () => {
@@ -79,12 +124,17 @@ describe("編集画面・追加画面のカスタマイズ処理", () => {
       },
       qrCode: { dataName: "コード", field: "code" },
     };
-    mockRestorePluginConfig.mockReturnValue(mockConfig);
+    (restorePluginConfig as Mock).mockReturnValue(mockConfig);
     // スペースが存在しないものとする
-    mockGetSpaceElement.mockReturnValue(null);
+    (globalThis.kintone.app.record.getSpaceElement as Mock).mockReturnValue(
+      null,
+    );
 
     /* action & assert */
-    const eventHandler = getHandler(mockEventsOn, "app.record.edit.show");
+    const eventHandler = getHandler(
+      globalThis.kintone.events.on as Mock,
+      "app.record.edit.show",
+    );
     expect(() => eventHandler({})).toThrow(
       "QRコードリーダー設置用の項目がありません:reader",
     );
@@ -106,18 +156,25 @@ describe("index画面のカスタマイズ処理", () => {
       },
       qrCode: { dataName: "コード", field: "code" },
     };
-    mockRestorePluginConfig.mockReturnValue(mockConfig);
+    (restorePluginConfig as Mock).mockReturnValue(mockConfig);
     const mockElement = document.createElement("div");
-    mockGetHeaderSpaceElement.mockReturnValue(mockElement);
+    (globalThis.kintone.app.getHeaderSpaceElement as Mock).mockReturnValue(
+      mockElement,
+    );
 
     /* action */
-    const eventHandler = getHandler(mockEventsOn, "app.record.index.show");
+    const eventHandler = getHandler(
+      globalThis.kintone.events.on as Mock,
+      "app.record.index.show",
+    );
     const event = { viewName: "登録画面" }; // モックの一覧ビューイベント
     eventHandler(event);
 
     /* assert */
-    expect(mockCreateRoot).toHaveBeenCalledWith(mockElement);
-    expect(mockRender).toHaveBeenCalledWith(
+    expect(createRoot as Mock).toHaveBeenCalledWith(mockElement);
+
+    const rootResult = (createRoot as Mock).mock.results[0].value;
+    expect(rootResult.render).toHaveBeenCalledWith(
       <AppIndex config={mockConfig} mode="regist" />,
     );
   });
@@ -134,18 +191,24 @@ describe("index画面のカスタマイズ処理", () => {
       },
       qrCode: { dataName: "コード", field: "code" },
     };
-    mockRestorePluginConfig.mockReturnValue(mockConfig);
+    (restorePluginConfig as Mock).mockReturnValue(mockConfig);
     const mockElement = document.createElement("div");
-    mockGetHeaderSpaceElement.mockReturnValue(mockElement);
+    (globalThis.kintone.app.getHeaderSpaceElement as Mock).mockReturnValue(
+      mockElement,
+    );
 
     /* action */
-    const eventHandler = getHandler(mockEventsOn, "app.record.index.show");
+    const eventHandler = getHandler(
+      globalThis.kintone.events.on as Mock,
+      "app.record.index.show",
+    );
     const event = { viewName: "更新画面" }; // モックの一覧ビューイベント
     eventHandler(event);
 
     /* assert */
-    expect(mockCreateRoot).toHaveBeenCalledWith(mockElement);
-    expect(mockRender).toHaveBeenCalledWith(
+    expect(createRoot as Mock).toHaveBeenCalledWith(mockElement);
+    const rootResult = (createRoot as Mock).mock.results[0].value;
+    expect(rootResult.render).toHaveBeenCalledWith(
       <AppIndex config={mockConfig} mode="update" />,
     );
   });
@@ -161,18 +224,24 @@ describe("index画面のカスタマイズ処理", () => {
       },
       qrCode: { dataName: "コード", field: "code" },
     };
-    mockRestorePluginConfig.mockReturnValue(mockConfig);
+    (restorePluginConfig as Mock).mockReturnValue(mockConfig);
     const mockElement = document.createElement("div");
-    mockGetHeaderSpaceElement.mockReturnValue(mockElement);
+    (globalThis.kintone.app.getHeaderSpaceElement as Mock).mockReturnValue(
+      mockElement,
+    );
 
     /* action */
-    const eventHandler = getHandler(mockEventsOn, "app.record.index.show");
+    const eventHandler = getHandler(
+      globalThis.kintone.events.on as Mock,
+      "app.record.index.show",
+    );
     const event = { viewName: "検索画面" }; // モックの一覧ビューイベント
     eventHandler(event);
 
     /* assert */
-    expect(mockCreateRoot).toHaveBeenCalledWith(mockElement);
-    expect(mockRender).toHaveBeenCalledWith(
+    expect(createRoot as Mock).toHaveBeenCalledWith(mockElement);
+    const rootResult = (createRoot as Mock).mock.results[0].value;
+    expect(rootResult.render).toHaveBeenCalledWith(
       <AppIndex config={mockConfig} mode="search" />,
     );
   });
@@ -185,18 +254,22 @@ describe("index画面のカスタマイズ処理", () => {
       },
       qrCode: { dataName: "コード", field: "code" },
     };
-    mockRestorePluginConfig.mockReturnValue(mockConfig);
+    (restorePluginConfig as Mock).mockReturnValue(mockConfig);
     const mockElement = document.createElement("div");
-    mockGetHeaderSpaceElement.mockReturnValue(mockElement);
+    (globalThis.kintone.app.getHeaderSpaceElement as Mock).mockReturnValue(
+      mockElement,
+    );
 
     /* action */
-    const eventHandler = getHandler(mockEventsOn, "app.record.index.show");
+    const eventHandler = getHandler(
+      globalThis.kintone.events.on as Mock,
+      "app.record.index.show",
+    );
     const event = { viewName: "record" }; // モックの一覧ビューイベント
     eventHandler(event);
 
     /* assert */
-    expect(mockCreateRoot).not.toHaveBeenCalled();
-    expect(mockRender).not.toHaveBeenCalled();
+    expect(createRoot as Mock).not.toHaveBeenCalled();
   });
 
   test("QRコードリーダーの設置スペースが存在しない場合はエラー", () => {
@@ -210,11 +283,16 @@ describe("index画面のカスタマイズ処理", () => {
       },
       qrCode: { dataName: "コード", field: "code" },
     };
-    mockRestorePluginConfig.mockReturnValue(mockConfig);
-    mockGetHeaderSpaceElement.mockReturnValue(null);
+    (restorePluginConfig as Mock).mockReturnValue(mockConfig);
+    (globalThis.kintone.app.getHeaderSpaceElement as Mock).mockReturnValue(
+      null,
+    );
 
     /* action & assert */
-    const eventHandler = getHandler(mockEventsOn, "app.record.index.show");
+    const eventHandler = getHandler(
+      globalThis.kintone.events.on as Mock,
+      "app.record.index.show",
+    );
     const event = { viewName: "検索画面" }; // モックの一覧ビューイベント
     expect(() => eventHandler(event)).toThrow(
       "QRコードリーダー設置用のヘッダスペースが取得できません",

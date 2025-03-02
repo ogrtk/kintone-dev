@@ -26,16 +26,15 @@ export function KintoneLikeRadio<T extends FieldValues>({
 
   return (
     <div className="setting">
-      <p className="kintoneplugin-label">
-        {label}
-        {required && <span className="kintoneplugin-require"> * </span>}
-      </p>
+      <p className="kintoneplugin-label">{label}</p>
+      {required && <span className="kintoneplugin-require"> * </span>}
       <div className="kintoneplugin-desc">{description}</div>
       <div className="kintoneplugin-input-radio setting">
         {options.map((option) => {
           return (
             <span key={option.code} className="kintoneplugin-input-radio-item">
               <input
+                className="kintone-like-input"
                 type="radio"
                 value={option.code}
                 id={`${name}-${option.code}`}

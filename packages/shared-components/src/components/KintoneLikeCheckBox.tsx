@@ -21,10 +21,8 @@ export function KintoneLikeCheckBox<T extends FieldValues>({
 }: KintoneLikeCheckBoxProps<T>) {
   return (
     <div className="setting">
-      <p className="kintoneplugin-label">
-        {label}
-        {required && <span className="kintoneplugin-require"> * </span>}
-      </p>
+      <p className="kintoneplugin-label kintone-like-checkbox-group">{label}</p>
+      {required && <span className="kintoneplugin-require"> * </span>}
       <div className="kintoneplugin-desc">{description}</div>
       <KintoneLikeCheckBoxWithoutLabel
         name={name}
@@ -57,6 +55,7 @@ export function KintoneLikeCheckBoxWithoutLabel<T extends FieldValues>({
           <div key={option.code} className="kintoneplugin-input-checkbox">
             <span className="kintoneplugin-input-checkbox-item">
               <input
+                className="kintone-like-input"
                 type="checkbox"
                 value={option.code}
                 id={`${name}-${option.code}`}

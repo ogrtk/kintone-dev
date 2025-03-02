@@ -36,8 +36,8 @@ export function KintoneLikeSelect<T extends FieldValues>({
     <div className="setting">
       <label className="kintoneplugin-label" htmlFor={name}>
         {label}
-        {required && <span className="kintoneplugin-require"> * </span>}
       </label>
+      {required && <span className="kintoneplugin-require"> * </span>}
       <div className="kintoneplugin-desc">{description}</div>
       <KintoneLikeSelectWithoutLabel
         name={name}
@@ -68,7 +68,12 @@ export function KintoneLikeSelectWithoutLabel<T extends FieldValues>({
   return (
     <div className="kintoneplugin-select-outer">
       <div className="kintoneplugin-select">
-        <select {...register(name)} id={name} style={style}>
+        <select
+          {...register(name)}
+          id={name}
+          style={style}
+          className="kintone-like-input"
+        >
           {options.map((item) => (
             <option key={item.code} value={item.code}>
               {item.label}

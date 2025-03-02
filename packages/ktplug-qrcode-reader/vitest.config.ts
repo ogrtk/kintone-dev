@@ -7,12 +7,7 @@ export default mergeConfig(
     test: {
       environment: "jsdom",
       globals: true,
-    },
-    resolve: {
-      alias: {
-        "@customize":
-          "/workspaces/21-kintone/packages/ktplug-qrcode-reader/src/components/customize",
-      },
+      setupFiles: "./vitest.setup.ts",
     },
   }),
 );

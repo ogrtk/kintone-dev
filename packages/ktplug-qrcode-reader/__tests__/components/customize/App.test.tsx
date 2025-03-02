@@ -10,7 +10,7 @@ vi.mock("@ogrtk/shared-styles", () => ({}));
 
 // QRリーダーコンポーネントのmock
 let mockQrReaderDecodedString = "";
-vi.mock("../../src/components/customize/QrReader", () => ({
+vi.mock("../../../src/components/customize/QrReader", () => ({
   QrReader: ({ action }: { action: (arg: string) => void }) => (
     <button
       type="button"
