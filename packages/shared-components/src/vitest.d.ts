@@ -1,9 +1,7 @@
 import "vitest";
 
 interface CustomMatchers<R = unknown> {
-  toBeFoo: () => R;
-  toHaveClassStartingWith: (received: Element, expectedPrefix: string) => R;
-  toBeTableWithRecords: (expectedRecords: unknown[][]) => R;
+  toBeTableWithRecords: (expectedRecords: string[][]) => R;
 }
 
 declare module "vitest" {
