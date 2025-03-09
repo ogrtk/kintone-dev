@@ -5,19 +5,21 @@ import {
 } from "@/src/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  KintoneFieldsRetriever,
   KintoneLikeBooleanCheckBox,
   KintoneLikeCheckBox,
   KintoneLikeSelect,
   KintoneLikeSingleText,
   KintoneLikeTable,
+} from "@ogrtk/shared/components";
+import {
+  KintoneFieldsRetriever,
   type SelectOption,
   restorePluginConfig,
   storePluginConfig,
-} from "@ogrtk/shared-components";
+} from "@ogrtk/shared/kintone-utils";
 import { useEffect, useMemo, useState } from "react";
 import { type SubmitHandler, useForm } from "react-hook-form";
-import "@ogrtk/shared-styles";
+import "@ogrtk/shared/styles";
 
 /**
  * プラグイン設定画面

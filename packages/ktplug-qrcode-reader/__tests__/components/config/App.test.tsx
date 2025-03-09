@@ -1,26 +1,31 @@
 import type { PluginConfig } from "@/src/types";
 import {
+  getCheckBoxGroup,
   getTable,
-  restorePluginConfig,
-  storePluginConfig,
   withinCheckBoxGroup,
-} from "@ogrtk/shared-components";
+} from "@ogrtk/shared/test-utils";
 import "@testing-library/jest-dom/vitest";
 import { App } from "@/src/components/config/App";
+import {
+  restorePluginConfig,
+  storePluginConfig,
+} from "@ogrtk/shared/kintone-utils";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Mock } from "vitest";
 
 // プラグインの設定をモック
-vi.mock("@ogrtk/shared-components", async () => {
+vi.mock("@ogrtk/shared/kintone-utils", async () => {
   const actual = await vi.importActual<
-    typeof import("@ogrtk/shared-components")
-  >("@ogrtk/shared-components");
+    typeof import("@ogrtk/shared/kintone-utils")
+  >("@ogrtk/shared/kintone-utils");
   return {
     ...actual,
     restorePluginConfig: vi.fn(),
-    storePluginConfig: vi.fn(),
+    storePluginConfig: vi.fn((data: PluginConfig, func: () => void) => {
+      func();
+    }),
     KintoneFieldsRetriever: class {
       async getFields() {
         return [
@@ -43,6 +48,26 @@ vi.mock("@ogrtk/shared-components", async () => {
       }
     },
   };
+});
+
+// グローバルオブジェクト kintone のmock
+globalThis.kintone = {
+  app: {
+    getId: vi.fn(() => 123),
+  } as unknown as typeof kintone.app,
+} as unknown as typeof kintone;
+
+// window の mock
+const mockAlertFn = vi.fn();
+const mockReloadFn = vi.fn();
+vi.stubGlobal("alert", mockAlertFn);
+Object.defineProperty(window, "location", {
+  configurable: true,
+  value: {
+    href: "https://mocked.origin.com/path1/path2",
+    reload: mockReloadFn,
+    origin: "https://mocked.origin.com",
+  },
 });
 
 describe("Appコンポーネント", () => {
@@ -79,18 +104,7 @@ describe("Appコンポーネント", () => {
     );
 
     // 用途種別選択 の検証
-    expect(
-      withinCheckBoxGroup("用途種別選択").getByLabelText("一覧での登録"),
-    ).not.toBeChecked();
-    expect(
-      withinCheckBoxGroup("用途種別選択").getByLabelText("一覧での検索"),
-    ).not.toBeChecked();
-    expect(
-      withinCheckBoxGroup("用途種別選択").getByLabelText("一覧での更新"),
-    ).not.toBeChecked();
-    expect(
-      withinCheckBoxGroup("用途種別選択").getByLabelText("詳細画面"),
-    ).toBeChecked();
+    expect(getCheckBoxGroup("用途種別選択")).toHaveCheckedLabels(["詳細画面"]);
 
     expect(screen.getByLabelText("QRコードリーダー配置用スペース")).toHaveValue(
       "space1",
@@ -134,18 +148,9 @@ describe("Appコンポーネント", () => {
     );
 
     // 用途種別選択 の検証
-    expect(
-      withinCheckBoxGroup("用途種別選択").getByLabelText("一覧での登録"),
-    ).toBeChecked();
-    expect(
-      withinCheckBoxGroup("用途種別選択").getByLabelText("一覧での検索"),
-    ).not.toBeChecked();
-    expect(
-      withinCheckBoxGroup("用途種別選択").getByLabelText("一覧での更新"),
-    ).not.toBeChecked();
-    expect(
-      withinCheckBoxGroup("用途種別選択").getByLabelText("詳細画面"),
-    ).not.toBeChecked();
+    expect(getCheckBoxGroup("用途種別選択")).toHaveCheckedLabels([
+      "一覧での登録",
+    ]);
 
     // ■一覧での登録用設定 の検証
     const listRegistSection = screen.getByText(
@@ -174,7 +179,7 @@ describe("Appコンポーネント", () => {
         "利用する",
       ),
     ).toBeChecked();
-    expect(getTable("追加設定値")).toBeTableWithRecords([
+    expect(getTable("追加設定値")).toHaveTableRecords([
       ["registTextField", `{ value: "value1" }`],
       ["registDateField", `{ value: "value2" }`],
     ]);
@@ -255,19 +260,14 @@ describe("Appコンポーネント", () => {
       "dataTextField",
     );
 
+    expect(getCheckBoxGroup("用途種別選択")).toHaveCheckedLabels([
+      "一覧での更新",
+    ]);
+
     // 用途種別選択 の検証
-    expect(
-      withinCheckBoxGroup("用途種別選択").getByLabelText("一覧での登録"),
-    ).not.toBeChecked();
-    expect(
-      withinCheckBoxGroup("用途種別選択").getByLabelText("一覧での検索"),
-    ).not.toBeChecked();
-    expect(
-      withinCheckBoxGroup("用途種別選択").getByLabelText("一覧での更新"),
-    ).toBeChecked();
-    expect(
-      withinCheckBoxGroup("用途種別選択").getByLabelText("詳細画面"),
-    ).not.toBeChecked();
+    expect(getCheckBoxGroup("用途種別選択")).toHaveCheckedLabels([
+      "一覧での更新",
+    ]);
 
     // ■一覧での更新用設定 の検証
     const listUpdateSection = screen.getByText(
@@ -282,7 +282,7 @@ describe("Appコンポーネント", () => {
     expect(
       within(listUpdateSection).getByLabelText("追加絞込条件"),
     ).toHaveValue("update additional query");
-    expect(getTable("更新値")).toBeTableWithRecords([
+    expect(getTable("更新値")).toHaveTableRecords([
       ["updateTextField", `{ value: "updateValue1" }`],
       ["updateDateField", `{ value: "updateValue2" }`],
     ]);
@@ -320,18 +320,9 @@ describe("Appコンポーネント", () => {
     );
 
     // 用途種別選択 の検証
-    expect(
-      withinCheckBoxGroup("用途種別選択").getByLabelText("一覧での登録"),
-    ).not.toBeChecked();
-    expect(
-      withinCheckBoxGroup("用途種別選択").getByLabelText("一覧での検索"),
-    ).toBeChecked();
-    expect(
-      withinCheckBoxGroup("用途種別選択").getByLabelText("一覧での更新"),
-    ).not.toBeChecked();
-    expect(
-      withinCheckBoxGroup("用途種別選択").getByLabelText("詳細画面"),
-    ).not.toBeChecked();
+    expect(getCheckBoxGroup("用途種別選択")).toHaveCheckedLabels([
+      "一覧での検索",
+    ]);
 
     // ■一覧での検索用設定 の検証
     const listSearchSection = screen.getByText(
@@ -375,6 +366,10 @@ describe("Appコンポーネント", () => {
         },
         expect.any(Function),
       );
+      expect(mockAlertFn).toHaveBeenCalledWith(
+        "保存しました。反映のため、アプリを更新してください",
+      );
+      expect(window.location.href).toEqual("../../flow?app=123");
     });
   });
 

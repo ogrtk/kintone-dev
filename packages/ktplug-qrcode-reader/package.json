@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "vitest",
+    "coverage": "vitest run --coverage ",
     "check": "biome check --write",
     "build:dev": "pnpm run check && vite build",
     "dev": "concurrently 'pnpm run build:dev --watch' 'vite dev'",
@@ -27,8 +28,7 @@
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
     "@kintone/rest-api-client": "^5.6.0",
-    "@ogrtk/shared-components": "workspace:*",
-    "@ogrtk/shared-styles": "workspace:*",
+    "@ogrtk/shared": "workspace:^",
     "html5-qrcode": "^2.3.8",
     "i18next": "^24.2.0",
     "react": "^19.0.0",

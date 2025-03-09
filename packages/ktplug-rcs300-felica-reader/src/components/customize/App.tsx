@@ -12,7 +12,7 @@ import {
 import {
   type KintoneRecord,
   restorePluginConfig,
-} from "@ogrtk/shared-components";
+} from "@ogrtk/shared/kintone-utils";
 import { useEffect, useState } from "react";
 
 type FelicaData = { idm?: string; memory?: string };

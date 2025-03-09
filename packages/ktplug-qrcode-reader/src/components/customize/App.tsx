@@ -3,7 +3,7 @@ import {
   type KintoneRecordField,
   KintoneRestAPIClient,
 } from "@kintone/rest-api-client";
-import { type KintoneRecord, getRecordUrl } from "@ogrtk/shared-components";
+import { type KintoneRecord, getRecordUrl } from "@ogrtk/shared/kintone-utils";
 import { type QrReadedAction, QrReader } from "./QrReader";
 
 /**
@@ -56,18 +56,23 @@ export function AppIndex({
   mode,
 }: { config: PluginConfig; mode: IndexMode }) {
   const action: QrReadedAction = async (decodedText) => {
+    const app = kintone.app.getId();
+    if (!app) throw new Error("アプリIDが取得できません");
+
     switch (mode) {
       case "regist":
-        await regist(decodedText, config);
+        await regist(app, decodedText, config);
         break;
       case "update":
-        await update(decodedText, config);
+        await update(app, decodedText, config);
         break;
       case "search":
-        await search(decodedText, config);
+        await search(app, decodedText, config);
         break;
       default:
-        throw new Error();
+        // 網羅性チェック
+        mode satisfies never;
+        throw new Error(`Unexpected mode: ${mode}`);
     }
   };
 
@@ -88,20 +93,19 @@ export function AppIndex({
  * @param config プラグインの設定
  * @returns
  */
-async function regist(decodedText: string, config: PluginConfig) {
-  const confirmed = confirm(`読取結果（${decodedText}）登録しますか？`);
+async function regist(app: number, decodedText: string, config: PluginConfig) {
+  if (!config.useCase.listRegist) throw new Error("登録用の設定がありません");
+
+  const confirmed = confirm(`読取結果（${decodedText}）。登録しますか？`);
   if (!confirmed) return;
 
   const client = new KintoneRestAPIClient();
 
-  const app = kintone.app.getId();
-  if (!app) throw new Error("アプリIDが取得できません");
-
   // 重複チェック
-  if (config.useCase.listRegist?.noDuplicate) {
+  if (config.useCase.listRegist.noDuplicate) {
     // QRコードの読取値に加え、追加絞込条件を加味し、重複チェック対象のレコードを取得
     const additionalQuery =
-      config.useCase.listRegist?.duplicateCheckAdditionalQuery;
+      config.useCase.listRegist.duplicateCheckAdditionalQuery;
     const query = `${config.qrCode.field} = "${decodedText}"${additionalQuery ? ` and ${additionalQuery}` : ""}`;
     const fetchedRecords = await client.record.getRecords<
       {
@@ -142,16 +146,13 @@ async function regist(decodedText: string, config: PluginConfig) {
  * @param config プラグインの設定
  * @returns
  */
-async function update(decodedText: string, config: PluginConfig) {
-  if (!config.useCase.listUpdate) return;
+async function update(app: number, decodedText: string, config: PluginConfig) {
+  if (!config.useCase.listUpdate) throw new Error("更新用の設定がありません");
 
   const confirmed = confirm(`読取結果（${decodedText}）。更新しますか？`);
   if (!confirmed) return;
 
   const client = new KintoneRestAPIClient();
-
-  const app = kintone.app.getId();
-  if (!app) throw new Error("アプリIDが取得できません");
 
   // QRコードの読取値に加え、追加絞込条件を加味し、更新対象のレコードを取得
   const additionalQuery = config.useCase.listUpdate.additionalQuery;
@@ -207,13 +208,10 @@ async function update(decodedText: string, config: PluginConfig) {
  * @param config プラグインの設定
  * @returns
  */
-async function search(decodedText: string, config: PluginConfig) {
-  if (!config.useCase.listSearch) return;
+async function search(app: number, decodedText: string, config: PluginConfig) {
+  if (!config.useCase.listSearch) throw new Error("検索用の設定がありません");
 
   const client = new KintoneRestAPIClient();
-
-  const app = kintone.app.getId();
-  if (!app) throw new Error("アプリIDが取得できません");
 
   // QRコードの読取値に加え、追加絞込条件を加味し、更新対象のレコードを取得
   const additionalQuery = config.useCase.listSearch.additionalQuery;

@@ -5,28 +5,15 @@
     "moduleResolution": "Bundler",
     "strict": true,
     "skipLibCheck": true,
-    "lib": [
-      "ESNext",
-      "DOM"
-    ],
+    "lib": ["ESNext", "DOM"],
     "jsx": "react-jsx",
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"]
     },
-    "esModuleInterop": true,
-    "types": [
-      "vitest/globals",
-    ]
+    "esModuleInterop": true
+    // "types": ["vitest/globals"]
   },
-  "files": [
-    "./node_modules/@kintone/dts-gen/kintone.d.ts"
-  ],
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "**/*.mdx",
-    "global.d.ts",
-  ]
+  "files": ["./node_modules/@kintone/dts-gen/kintone.d.ts"],
+  "include": ["**/*.ts", "**/*.tsx", "**/*.mdx", "global.d.ts"],
+  "exclude": ["node_modules", "dist"]
 }

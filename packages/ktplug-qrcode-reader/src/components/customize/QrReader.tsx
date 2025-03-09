@@ -1,6 +1,6 @@
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { useCallback, useEffect, useRef, useState } from "react";
-import "@ogrtk/shared-styles";
+import "@ogrtk/shared/styles";
 
 const READER_ELEMENT_ID = "qr-reader";
 
@@ -41,7 +41,7 @@ export function QrReader({ size, action, autoStart }: QrReaderProps) {
     autoStart ? "読み取り停止" : "読み取り開始",
   );
   const [readerDisplay, setReaderDisplay] = useState<"none" | "block">("none");
-  const scannerRef = useRef<Html5QrcodeScanner | undefined>(undefined); // ✅ useRef を使用
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
   /**
    * QRコードスキャナーを画面表示
@@ -74,13 +74,11 @@ export function QrReader({ size, action, autoStart }: QrReaderProps) {
    * QRコードスキャナーをクリア
    */
   const clearReader = useCallback(async (readed = false) => {
-    while (true) {
-      if (!scannerRef.current) return;
+    while (scannerRef.current) {
       try {
         await scannerRef.current.clear();
         await sleep(1000);
-        scannerRef.current = undefined;
-        break;
+        scannerRef.current = null;
       } catch (e) {
         console.warn("retry clearing");
       }

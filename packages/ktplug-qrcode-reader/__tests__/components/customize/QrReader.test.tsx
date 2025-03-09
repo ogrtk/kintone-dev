@@ -9,7 +9,7 @@ import { Html5QrcodeErrorTypes } from "html5-qrcode/esm/core";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import "@testing-library/jest-dom/vitest";
 
-vi.mock("@ogrtk/shared-styles", () => ({}));
+// vi.mock("@ogrtk/shared/styles", () => ({}));
 
 // コンポーネントに外部から与えるコールバック関数
 const mockedAction = vi.fn() as QrReadedAction;
@@ -202,6 +202,39 @@ describe("QRコードリーダー", () => {
     );
   });
 
+  test("QRコードリーダーを表示後に停止(一度エラー発生)", async () => {
+    /* arrange */
+    const warnSpy = vi.spyOn(console, "warn");
+    mockedRender.mockImplementation(async () => {});
+    mockedClear.mockImplementationOnce(async () => {
+      throw new Error("error once");
+    });
+    render(
+      <QrReader
+        action={mockedAction}
+        autoStart={false}
+        size={{ height: "100px", width: "100px" }}
+      />,
+    );
+
+    /* action */
+    await userEvent.click(
+      screen.getByRole("button", { name: /読み取り開始/i }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /読み取り停止/i }),
+    );
+
+    /* assert */
+    await waitFor(
+      () => {
+        expect(mockedClear).toHaveBeenCalledTimes(2);
+        expect(warnSpy).toHaveBeenCalledWith("retry clearing");
+      },
+      { timeout: 2000 },
+    );
+  });
+
   test("Autostart:true", async () => {
     /* arrange */
     mockedRender.mockImplementation(async () => {});
@@ -287,4 +320,31 @@ describe("QRコードリーダー", () => {
       expect(mockedAction).toHaveBeenCalledWith("mock-qr-code-text-2"),
     );
   });
+
+  // test("clearReader で scannerRef.current が undefined の場合に早期 return する", async () => {
+  //   const actionMock = vi.fn();
+  //   const { container } = render(
+  //     <QrReader
+  //       size={{ width: "200px", height: "200px" }}
+  //       action={actionMock}
+  //       autoStart={false}
+  //     />,
+  //   );
+
+  //   // QrReader のインスタンスを取得
+  //   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  //   const instance = container.firstChild as any;
+  //   console.log("🚀 ~ test ~ instance:", instance);
+
+  //   // scannerRef.current を undefined にする
+  //   instance.scannerRef = { current: null };
+
+  //   // clearReader を直接実行
+  //   await act(async () => {
+  //     await instance.clearReader();
+  //   });
+
+  //   // 何も処理されずに return されるので、副作用がないことを確認
+  //   expect(screen.getByRole("application")).toHaveStyle("display: none");
+  // });
 });

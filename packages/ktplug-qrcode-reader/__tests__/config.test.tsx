@@ -52,7 +52,7 @@ describe("plugin設定画面", () => {
     import(`@/src/config?timestamp=${Date.now()}`);
 
     /* assert */
-    waitFor(async () => {
+    await waitFor(async () => {
       await expect(mockAlertFn).toHaveBeenCalledWith(
         "内部エラー：plugin-container要素がありません",
       );

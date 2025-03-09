@@ -1,21 +1,10 @@
-import i18next from "@/node_modules/i18next";
 import {
   preprocessedNumberInputSchema,
   refineJsonString,
   unsetBoolDependentField,
   unsetLiteralsDependentField,
-} from "@ogrtk/shared-components";
-import { z } from "zod";
-import { zodI18nMap } from "zod-i18n-map";
-import translation from "zod-i18n-map/locales/ja/zod.json";
-
-i18next.init({
-  lng: "ja",
-  resources: {
-    ja: { zod: translation },
-  },
-});
-z.setErrorMap(zodI18nMap);
+  z,
+} from "@ogrtk/shared/zod-utils";
 
 /**
  *  0以上の整数スキーマ（preprocessにより入力文字列を数値とする）

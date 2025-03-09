@@ -2,20 +2,8 @@ import {
   refineJsonString,
   unsetBoolDependentField,
   unsetLiteralsDependentField,
-} from "@ogrtk/shared-components";
-import i18next from "i18next";
-import { z } from "zod";
-import { zodI18nMap } from "zod-i18n-map";
-import translation from "zod-i18n-map/locales/ja/zod.json";
-
-// zodエラーメッセージの日本語化
-i18next.init({
-  lng: "ja",
-  resources: {
-    ja: { zod: translation },
-  },
-});
-z.setErrorMap(zodI18nMap);
+  z,
+} from "@ogrtk/shared/zod-utils";
 
 /**
  * 用途種別選択肢
@@ -78,6 +66,7 @@ const listRegistConfigSchema = z.preprocess(
   ]),
   listRegistConfigSchemaCore,
 );
+export type ListRegistConfig = z.infer<typeof listRegistConfigSchema>;
 
 /**
  * 用途種別の設定スキーマ（一覧更新）
@@ -183,7 +172,7 @@ const qrCodeConfigSchema = z.object({
   dataName: z.string().default("QRコードの値"),
   field: z.string().nonempty(),
 });
-export type QrCodeConfig = z.infer<typeof qrCodeConfigSchema>;
+// type QrCodeConfig = z.infer<typeof qrCodeConfigSchema>;
 
 /**
  * プラグインの設定情報スキーマ

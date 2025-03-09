@@ -1,4 +1,4 @@
-import { restorePluginConfig } from "@ogrtk/shared-components";
+import { restorePluginConfig } from "@ogrtk/shared/kintone-utils";
 import { createRoot } from "react-dom/client";
 import {
   AppIndex,

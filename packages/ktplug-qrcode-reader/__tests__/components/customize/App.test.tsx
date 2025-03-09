@@ -1,28 +1,43 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import {
+  type Mock,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  test,
+  vi,
+} from "vitest";
 import "@testing-library/jest-dom/vitest";
-import { AppIndex, AppRecord } from "@/src/components/customize/App";
+import {
+  AppIndex,
+  AppRecord,
+  type IndexMode,
+} from "@/src/components/customize/App";
+import { QrReader } from "@/src/components/customize/QrReader";
 import type { PluginConfig } from "@/src/types";
-import { cleanup, render, screen } from "@testing-library/react";
+import { spyUnhandledRejection } from "@ogrtk/shared/test-utils";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useEffect } from "react";
 
 // テスト上、CSSを無視するためのmock
-vi.mock("@ogrtk/shared-styles", () => ({}));
+// vi.mock("@ogrtk/shared/styles", () => ({}));
 
 // QRリーダーコンポーネントのmock
 let mockQrReaderDecodedString = "";
 vi.mock("../../../src/components/customize/QrReader", () => ({
-  QrReader: ({ action }: { action: (arg: string) => void }) => (
+  QrReader: vi.fn(({ action }: { action: (arg: string) => void }) => (
     <button
       type="button"
       data-testid="qrreader-btn"
-      onClick={() => action(mockQrReaderDecodedString)}
+      onClick={async () => await action(mockQrReaderDecodedString)}
     >
       QRコードをスキャン!
     </button>
-  ),
+  )),
 }));
 
-// kintone RESTAPI client のmock
+// kintone RESTAPI client の  mock
 const mockGetRecordsFn = vi.fn();
 const mockAddRecordFn = vi.fn();
 const mockUpdateRecordFn = vi.fn();
@@ -36,7 +51,7 @@ vi.mock("@kintone/rest-api-client", () => ({
   })),
 }));
 
-// グローバルオブジェクト kintone のmock
+// グローバルオブジェクト kintone の mock
 const mockKintoneAppRecordGetFn = vi.fn();
 const mockKintoneAppRecordSetFn = vi.fn();
 const mockKintoneAppGetLookupTargetAppId = vi.fn();
@@ -360,6 +375,33 @@ describe("AppIndex > regist ", () => {
       },
     });
   });
+
+  test("中断", async () => {
+    /* arrange */
+    mockWindowConfirmResult = false;
+    const mockPluginConfig: PluginConfig = {
+      qrCode: { field: "qrCodeField", dataName: "QRコードの値" },
+      useCase: {
+        types: ["listRegist"],
+        listRegist: {
+          targetViewName: "listRegistView",
+          noDuplicate: true,
+          useAdditionalValues: false,
+        },
+      },
+    };
+    mockQrReaderDecodedString = "qrKeyValue";
+    mockGetRecordsFn.mockResolvedValue({ records: [] });
+
+    render(<AppIndex config={mockPluginConfig} mode={"regist"} />);
+
+    /* action */
+    await userEvent.click(screen.getByTestId("qrreader-btn"));
+
+    /* assert */
+    expect(mockGetRecordsFn).not.toHaveBeenCalled();
+    expect(mockAddRecordFn).not.toHaveBeenCalled();
+  });
 });
 
 describe("AppIndex > update ", () => {
@@ -611,6 +653,44 @@ describe("AppIndex > update ", () => {
 revision不一致`,
     );
   });
+
+  test("中断", async () => {
+    /* arrange */
+    mockWindowConfirmResult = false;
+    const mockPluginConfig: PluginConfig = {
+      qrCode: { field: "qrCodeField", dataName: "QRコードの値" },
+      useCase: {
+        types: ["listUpdate"],
+        listUpdate: {
+          targetViewName: "listUpdateView",
+          additionalQuery: "",
+          updateValues: [
+            { field: "updateField1", value: `{"value":"updated1"}` },
+            { field: "updateField2", value: `{"value":"updated2"}` },
+          ],
+        },
+      },
+    };
+    mockQrReaderDecodedString = "qrKeyValue";
+    mockGetRecordsFn.mockResolvedValue({
+      records: [
+        {
+          $id: { type: "__ID__", value: "1" },
+          $revision: { type: "__REVISION__", value: "5" },
+          qrCodeField: { value: "qrKeyValue" },
+        },
+      ],
+    });
+
+    render(<AppIndex config={mockPluginConfig} mode={"update"} />);
+
+    /* action */
+    await userEvent.click(screen.getByTestId("qrreader-btn"));
+
+    /* assert */
+    expect(mockGetRecordsFn).not.toHaveBeenCalled();
+    expect(mockUpdateRecordFn).not.toHaveBeenCalled();
+  });
 });
 
 describe("AppIndex > search ", () => {
@@ -758,5 +838,136 @@ describe("AppIndex > search ", () => {
     expect(mockAlertFn).toHaveBeenCalledWith(
       "対象のデータを特定できません：複数のデータが該当します(qrKeyValue)",
     );
+  });
+
+  test("想定外の mode が指定された場合、エラーがスローされる", async () => {
+    /* arrange */
+    await spyUnhandledRejection(async (spy) => {
+      (QrReader as Mock).mockImplementation(
+        ({ action }: { action: (arg: string) => Promise<void> }) => {
+          useEffect(() => {
+            action("test");
+          }, [action]);
+          return <></>;
+        },
+      );
+      const mockPluginConfig: PluginConfig = {
+        qrCode: { field: "qrCodeField", dataName: "QRコードの値" },
+        useCase: {
+          types: ["listRegist"],
+        },
+      };
+
+      /* action */
+      render(
+        <AppIndex config={mockPluginConfig} mode={"unexpected" as IndexMode} />,
+      );
+
+      /* assert */
+      // 非同期エラーの発生を待つ
+      await waitFor(() => {
+        expect(spy).toHaveBeenCalledWith(
+          new Error("Unexpected mode: unexpected"),
+          Promise.resolve({}),
+        );
+      });
+    });
+  });
+
+  test("registが指定されたが該当する設定が無い場合、エラーがスローされる", async () => {
+    /* arrange */
+    await spyUnhandledRejection(async (spy) => {
+      const mockPluginConfig: PluginConfig = {
+        qrCode: { field: "qrCodeField", dataName: "QRコードの値" },
+        useCase: {
+          types: ["listRegist"],
+        },
+      };
+
+      /* action */
+      render(<AppIndex config={mockPluginConfig} mode={"regist"} />);
+
+      /* assert */
+      // 非同期エラーの発生を待つ
+      await waitFor(() => {
+        expect(spy).toHaveBeenCalledWith(
+          new Error("登録用の設定がありません"),
+          Promise.resolve({}),
+        );
+      });
+    });
+  });
+
+  test("updateが指定されたが該当する設定が無い場合、エラーがスローされる", async () => {
+    /* arrange */
+    await spyUnhandledRejection(async (spy) => {
+      const mockPluginConfig: PluginConfig = {
+        qrCode: { field: "qrCodeField", dataName: "QRコードの値" },
+        useCase: {
+          types: ["listUpdate"],
+        },
+      };
+
+      /* action */
+      render(<AppIndex config={mockPluginConfig} mode={"update"} />);
+
+      /* assert */
+      // 非同期エラーの発生を待つ
+      await waitFor(() => {
+        expect(spy).toHaveBeenCalledWith(
+          new Error("更新用の設定がありません"),
+          Promise.resolve({}),
+        );
+      });
+    });
+  });
+
+  test("searchが指定されたが該当する設定が無い場合、エラーがスローされる", async () => {
+    /* arrange */
+    await spyUnhandledRejection(async (spy) => {
+      const mockPluginConfig: PluginConfig = {
+        qrCode: { field: "qrCodeField", dataName: "QRコードの値" },
+        useCase: {
+          types: ["listSearch"],
+        },
+      };
+
+      /* action */
+      render(<AppIndex config={mockPluginConfig} mode={"search"} />);
+
+      /* assert */
+      // 非同期エラーの発生を待つ
+      await waitFor(() => {
+        expect(spy).toHaveBeenCalledWith(
+          new Error("検索用の設定がありません"),
+          Promise.resolve({}),
+        );
+      });
+    });
+  });
+
+  test("kintoneのアプリIDが取得できない場合、エラーがスローされる", async () => {
+    /* arrange */
+    await spyUnhandledRejection(async (spy) => {
+      /* assert */
+      (globalThis.kintone.app.getId as Mock).mockReturnValue(undefined);
+
+      const mockPluginConfig: PluginConfig = {
+        qrCode: { field: "qrCodeField", dataName: "QRコードの値" },
+        useCase: {
+          types: ["listRegist"],
+        },
+      };
+
+      /* action */
+      render(<AppIndex config={mockPluginConfig} mode={"regist"} />);
+      // 非同期エラーの発生を待つ
+      await waitFor(() => {
+        expect(spy).toHaveBeenCalledWith(
+          new Error("アプリIDが取得できません"),
+          Promise.resolve({}),
+        );
+      });
+    });
   });
 });

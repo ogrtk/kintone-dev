@@ -14,6 +14,7 @@ export default defineConfig({
   build: {
     sourcemap: true,
     rollupOptions: {
+      treeshake: true,
       input: { customize: path.resolve(__dirname, "src", "customize.tsx") },
       output: {
         // 即時実行関数

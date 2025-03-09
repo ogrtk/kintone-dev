@@ -1,6 +1,6 @@
 import { AppIndex, AppRecord } from "@/src/components/customize/App";
 import type { PluginConfig } from "@/src/types";
-import { restorePluginConfig } from "@ogrtk/shared-components";
+import { restorePluginConfig } from "@ogrtk/shared/kintone-utils";
 import { createRoot } from "react-dom/client";
 import { type Mock, beforeEach, describe, expect, test, vi } from "vitest";
 
@@ -22,10 +22,10 @@ globalThis.kintone = {
 await import("@/src/customize");
 
 // プラグインの設定をモック
-vi.mock("@ogrtk/shared-components", async () => {
+vi.mock("@ogrtk/shared/kintone-utils", async () => {
   const actual = await vi.importActual<
-    typeof import("@ogrtk/shared-components")
-  >("@ogrtk/shared-components");
+    typeof import("@ogrtk/shared/kintone-utils")
+  >("@ogrtk/shared/kintone-utils");
   return {
     ...actual,
     restorePluginConfig: vi.fn(),
