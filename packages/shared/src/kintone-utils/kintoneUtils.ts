@@ -3,7 +3,7 @@ import {
   KintoneRestAPIClient,
 } from "@kintone/rest-api-client";
 import { T } from "vitest/dist/chunks/environment.d8YfPkTm.js";
-import type { ZodSchema, z } from "zod";
+import type { SafeParseReturnType, ZodSchema, z } from "zod";
 
 /**
  * kintoneアプリのレコードを表す型
@@ -196,11 +196,7 @@ export function storePluginConfig<T>(data: T, callback: () => void) {
 export function restorePluginConfig<T extends ZodSchema>(
   id: string,
   schema: T,
-): ReturnType<typeof schema.safeParse> {
-  // ): z.infer<typeof schema> {
+): SafeParseReturnType<z.infer<T>, z.infer<T>> {
   const config = kintone.plugin.app.getConfig(id);
-  // return config.data
-  //   ? schema.safeParse(JSON.parse(config.data)).data
-  //   : undefined;
   return schema.safeParse(JSON.parse(config.data));
 }
