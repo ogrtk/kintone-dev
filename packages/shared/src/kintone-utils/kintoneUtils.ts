@@ -196,11 +196,11 @@ export function storePluginConfig<T>(data: T, callback: () => void) {
 export function restorePluginConfig<T extends ZodSchema>(
   id: string,
   schema: T,
-): ReturnType<typeof schema.safeParse> | undefined {
+): ReturnType<typeof schema.safeParse> {
   // ): z.infer<typeof schema> {
   const config = kintone.plugin.app.getConfig(id);
   // return config.data
   //   ? schema.safeParse(JSON.parse(config.data)).data
   //   : undefined;
-  return config.data ? schema.safeParse(JSON.parse(config.data)) : undefined;
+  return schema.safeParse(JSON.parse(config.data));
 }
