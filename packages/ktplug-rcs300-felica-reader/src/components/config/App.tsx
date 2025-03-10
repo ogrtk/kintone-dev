@@ -35,6 +35,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
   const [singleTextFields, setSingleTextFields] = useState<SelectOption[]>([]);
   const [spaceFields, setSpaceFields] = useState<SelectOption[]>([]);
   const [viewNames, setViewNames] = useState<SelectOption[]>([]);
+  const [messages, setMessages] = useState<string[]>([]);
 
   // react-hook-form
   const methods = useForm<PluginConfig>({
@@ -62,7 +63,13 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
 
   useEffect(() => {
     // pluginに保存した設定情報を取得
-    const config = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
+    const result = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
+    // エラーがある場合、メッセージ表示
+    if (!result.success) {
+      setMessages(result.error.errors.map((error) => error.message));
+    } else {
+      setMessages([]);
+    }
 
     const app = kintone.app.getId();
     if (!app) throw new Error("appが取得できません。");
@@ -97,7 +104,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
 
       // 動的に候補値を取得したselectについて、表示を正しくするためresetする
       // （useForm時点ではselectのlabelが存在しないため正しく表示できない）
-      reset(config);
+      reset(result.data);
     };
 
     fetchFieldsInfo();
@@ -115,180 +122,250 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <p className="kintoneplugin-label">【読取データ設定】</p>
+    <>
+      {messages?.map((message) => (
+        <p key={message} className="kintoneplugin-alert">
+          {message}
+        </p>
+      ))}
 
-      <KintoneLikeRadio
-        label="読取種別"
-        description="カードから読み取るデータの種別を指定してください。"
-        rhfMethods={methods}
-        name="readConfig.readType"
-        options={READ_TYPE_SELECTIONS}
-        required
-      />
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <p className="kintoneplugin-label">【読取データ設定】</p>
 
-      {(readType === "idm" || readType === "both") && (
-        <>
-          <p className="kintoneplugin-label">■IDm読取設定</p>
+        <KintoneLikeRadio
+          label="読取種別"
+          description="カードから読み取るデータの種別を指定してください。"
+          rhfMethods={methods}
+          name="readConfig.readType"
+          options={READ_TYPE_SELECTIONS}
+          required
+        />
 
+        {(readType === "idm" || readType === "both") && (
+          <>
+            <p className="kintoneplugin-label">■IDm読取設定</p>
+
+            <KintoneLikeSelect
+              label="IDm設定用項目1"
+              description={`読み取ったIDmを編集するフィールドのフィールドコードを指定してください。${readType !== "both" ? "(この項目は更新や重複チェック時のキーとなります)" : ""}`}
+              name="readConfig.idm.fieldCd1"
+              rhfMethods={methods}
+              options={singleTextFields}
+              required
+            />
+
+            <KintoneLikeSelect
+              label="IDm設定用項目2"
+              description="読み取ったIDmを編集するフィールドのフィールドコードを指定してください。"
+              name="readConfig.idm.fieldCd2"
+              rhfMethods={methods}
+              options={singleTextFields}
+            />
+          </>
+        )}
+        {(readType === "memory" || readType === "both") && (
+          <>
+            <p className="kintoneplugin-label">■メモリ読取設定</p>
+            <KintoneLikeSingleText
+              label="データ名称"
+              description="画面表示で利用するデータの名称を設定してください。"
+              name="readConfig.memory.name"
+              rhfMethods={methods}
+            />
+
+            <KintoneLikeSelect
+              label="メモリデータ設定用項目1"
+              description={`読み取ったメモリデータを編集するフィールドのフィールドコードを指定してください。${readType !== "both" ? "(この項目は更新や重複チェック時のキーとなります)" : ""}`}
+              name="readConfig.memory.fieldCd1"
+              options={singleTextFields}
+              rhfMethods={methods}
+              required
+            />
+
+            <KintoneLikeSelect
+              label="メモリデータ設定用項目2"
+              description="読み取ったメモリデータを編集するフィールドのフィールドコードを指定してください。"
+              name="readConfig.memory.fieldCd2"
+              options={singleTextFields}
+              rhfMethods={methods}
+            />
+
+            <KintoneLikeSingleText
+              label="サービスコード"
+              description="読み取るFeliCaカードのサービスコードを入力してください(4桁)。※2文字ずつの16進数表記('0B20'など) "
+              name="readConfig.memory.serviceCode"
+              rhfMethods={methods}
+              required
+            />
+
+            <KintoneLikeSingleText
+              label="ブロック開始位置"
+              description="読み取るFeliCaカードのメモリブロック開始位置を入力してください。"
+              name="readConfig.memory.block.start"
+              rhfMethods={methods}
+              required
+            />
+
+            <KintoneLikeSingleText
+              label="ブロック終了位置"
+              description="読み取るFeliCaカードのメモリブロック終了位置を入力してください。"
+              name="readConfig.memory.block.end"
+              rhfMethods={methods}
+              required
+            />
+
+            <KintoneLikeSingleText
+              label="データ切取開始位置"
+              description="読み取ったブロックデータの切取開始位置を入力してください。"
+              name="readConfig.memory.slice.start"
+              rhfMethods={methods}
+              required
+            />
+
+            <KintoneLikeSingleText
+              label="データ切取終了位置"
+              description="読み取ったブロックデータの切取終了位置を入力してください。"
+              name="readConfig.memory.slice.end"
+              rhfMethods={methods}
+              required
+            />
+          </>
+        )}
+
+        {readType === "both" && (
           <KintoneLikeSelect
-            label="IDm設定用項目1"
-            description={`読み取ったIDmを編集するフィールドのフィールドコードを指定してください。${readType !== "both" ? "(この項目は更新や重複チェック時のキーとなります)" : ""}`}
-            name="readConfig.idm.fieldCd1"
-            rhfMethods={methods}
-            options={singleTextFields}
-            required
-          />
-
-          <KintoneLikeSelect
-            label="IDm設定用項目2"
-            description="読み取ったIDmを編集するフィールドのフィールドコードを指定してください。"
-            name="readConfig.idm.fieldCd2"
-            rhfMethods={methods}
-            options={singleTextFields}
-          />
-        </>
-      )}
-      {(readType === "memory" || readType === "both") && (
-        <>
-          <p className="kintoneplugin-label">■メモリ読取設定</p>
-          <KintoneLikeSingleText
-            label="データ名称"
-            description="画面表示で利用するデータの名称を設定してください。"
-            name="readConfig.memory.name"
-            rhfMethods={methods}
-          />
-
-          <KintoneLikeSelect
-            label="メモリデータ設定用項目1"
-            description={`読み取ったメモリデータを編集するフィールドのフィールドコードを指定してください。${readType !== "both" ? "(この項目は更新や重複チェック時のキーとなります)" : ""}`}
-            name="readConfig.memory.fieldCd1"
-            options={singleTextFields}
+            label="キー項目"
+            description="IDmかメモリデータのどちらをキー項目として利用するかを指定してください（選択した項目を重複チェックや更新時のキー項目として扱います）。"
+            name="readConfig.uniqueItem"
+            options={[
+              { code: "", label: "" },
+              { code: "idm", label: "IDm設定用項目1" },
+              { code: "memory", label: "メモリデータ設定用項目1" },
+            ]}
             rhfMethods={methods}
             required
           />
+        )}
+        <hr />
 
-          <KintoneLikeSelect
-            label="メモリデータ設定用項目2"
-            description="読み取ったメモリデータを編集するフィールドのフィールドコードを指定してください。"
-            name="readConfig.memory.fieldCd2"
-            options={singleTextFields}
-            rhfMethods={methods}
-          />
+        <p className="kintoneplugin-label">【用途種別設定】</p>
 
-          <KintoneLikeSingleText
-            label="サービスコード"
-            description="読み取るFeliCaカードのサービスコードを入力してください(4桁)。※2文字ずつの16進数表記('0B20'など) "
-            name="readConfig.memory.serviceCode"
-            rhfMethods={methods}
-            required
-          />
-
-          <KintoneLikeSingleText
-            label="ブロック開始位置"
-            description="読み取るFeliCaカードのメモリブロック開始位置を入力してください。"
-            name="readConfig.memory.block.start"
-            rhfMethods={methods}
-            required
-          />
-
-          <KintoneLikeSingleText
-            label="ブロック終了位置"
-            description="読み取るFeliCaカードのメモリブロック終了位置を入力してください。"
-            name="readConfig.memory.block.end"
-            rhfMethods={methods}
-            required
-          />
-
-          <KintoneLikeSingleText
-            label="データ切取開始位置"
-            description="読み取ったブロックデータの切取開始位置を入力してください。"
-            name="readConfig.memory.slice.start"
-            rhfMethods={methods}
-            required
-          />
-
-          <KintoneLikeSingleText
-            label="データ切取終了位置"
-            description="読み取ったブロックデータの切取終了位置を入力してください。"
-            name="readConfig.memory.slice.end"
-            rhfMethods={methods}
-            required
-          />
-        </>
-      )}
-
-      {readType === "both" && (
-        <KintoneLikeSelect
-          label="キー項目"
-          description="IDmかメモリデータのどちらをキー項目として利用するかを指定してください（選択した項目を重複チェックや更新時のキー項目として扱います）。"
-          name="readConfig.uniqueItem"
-          options={[
-            { code: "", label: "" },
-            { code: "idm", label: "IDm設定用項目1" },
-            { code: "memory", label: "メモリデータ設定用項目1" },
-          ]}
+        <KintoneLikeCheckBox
+          label="用途種別"
+          description="カードリーダを利用する用途の種別を指定してください。"
+          name="useCase.types"
+          options={USECASE_TYPE_SELECTIONS}
           rhfMethods={methods}
           required
         />
-      )}
-      <hr />
 
-      <p className="kintoneplugin-label">【用途種別設定】</p>
+        {listRegistEnabled && (
+          <>
+            <p className="kintoneplugin-label">■一覧での登録用設定</p>
+            <KintoneLikeSelect
+              label="一覧名"
+              description="機能を有効にする一覧の名称を指定してください。"
+              name="useCase.listRegist.targetViewName"
+              options={viewNames}
+              rhfMethods={methods}
+              required
+            />
 
-      <KintoneLikeCheckBox
-        label="用途種別"
-        description="カードリーダを利用する用途の種別を指定してください。"
-        name="useCase.types"
-        options={USECASE_TYPE_SELECTIONS}
-        rhfMethods={methods}
-        required
-      />
+            <KintoneLikeBooleanCheckBox
+              rhfMethods={methods}
+              label="重複を許可しない"
+              description="カードから読み取ったデータについて、アプリ上での重複を禁止する場合はチェックしてください。"
+              checkBoxLabel="重複を許可しない"
+              name="useCase.listRegist.noDuplicate"
+            />
 
-      {listRegistEnabled && (
-        <>
-          <p className="kintoneplugin-label">■一覧での登録用設定</p>
-          <KintoneLikeSelect
-            label="一覧名"
-            description="機能を有効にする一覧の名称を指定してください。"
-            name="useCase.listRegist.targetViewName"
-            options={viewNames}
-            rhfMethods={methods}
-            required
-          />
+            {noDuplicate && (
+              <KintoneLikeSingleText
+                rhfMethods={methods}
+                label="重複チェック時の追加検索条件"
+                description="QRコードの値以外に、追加で指定する検索条件を指定してください（クエリの記法については、https://cybozu.dev/ja/kintone/docs/overview/query/ を参照）。"
+                name="useCase.listRegist.duplicateCheckAdditionalQuery"
+                style={{ width: "40em" }}
+              />
+            )}
 
-          <KintoneLikeBooleanCheckBox
-            rhfMethods={methods}
-            label="重複を許可しない"
-            description="カードから読み取ったデータについて、アプリ上での重複を禁止する場合はチェックしてください。"
-            checkBoxLabel="重複を許可しない"
-            name="useCase.listRegist.noDuplicate"
-          />
+            <KintoneLikeBooleanCheckBox
+              rhfMethods={methods}
+              label="追加設定値の利用"
+              description="読取結果登録時、追加で値を設定する場合はチェックしてください。"
+              checkBoxLabel="利用する"
+              name="useCase.listRegist.useAdditionalValues"
+            />
 
-          {noDuplicate && (
+            {useRegistAdditinalValues && (
+              <KintoneLikeTable
+                rhfMethods={methods}
+                label="追加設定値"
+                description='QRコードの値以外に、追加で設定する値を指定してください（設定値については {"value": "登録値"}といったjson形式で設定。https://cybozu.dev/ja/kintone/docs/overview/field-types/#field-type-update を参照）。'
+                name="useCase.listRegist.additionalValues"
+                defaultValue={{ field: "", value: "" }}
+                fieldMetas={[
+                  {
+                    type: "select",
+                    key: "field",
+                    label: "フィールドコード",
+                    options: fields,
+                  },
+                  {
+                    type: "singletext",
+                    key: "value",
+                    label: "設定値",
+                    style: {
+                      width: "40em",
+                    },
+                  },
+                ]}
+              />
+            )}
+
+            <KintoneLikeBooleanCheckBox
+              label="登録前確認"
+              description="カード読取後、登録前に確認ダイアログを表示するかどうかを指定してください。"
+              checkBoxLabel="表示する"
+              rhfMethods={methods}
+              name="useCase.listRegist.confirmBefore"
+            />
+
+            <KintoneLikeBooleanCheckBox
+              label="登録後通知"
+              description="登録後に通知メッセージを表示するかどうかを指定してください。"
+              checkBoxLabel="表示する"
+              rhfMethods={methods}
+              name="useCase.listRegist.notifyAfter"
+            />
+          </>
+        )}
+
+        {listUpdateEnabled && (
+          <>
+            <p className="kintoneplugin-label">■一覧での更新用設定</p>
+            <KintoneLikeSelect
+              label="一覧名"
+              description="機能を有効にする一覧の名称を指定してください。"
+              name="useCase.listUpdate.targetViewName"
+              options={viewNames}
+              rhfMethods={methods}
+              required
+            />
+
             <KintoneLikeSingleText
               rhfMethods={methods}
-              label="重複チェック時の追加検索条件"
-              description="QRコードの値以外に、追加で指定する検索条件を指定してください（クエリの記法については、https://cybozu.dev/ja/kintone/docs/overview/query/ を参照）。"
-              name="useCase.listRegist.duplicateCheckAdditionalQuery"
+              label="追加絞込条件"
+              description="QRコードの値以外に、追加で指定する絞込条件を指定してください（クエリの記法については、https://cybozu.dev/ja/kintone/docs/overview/query/ を参照）。"
+              name="useCase.listUpdate.additionalQuery"
               style={{ width: "40em" }}
             />
-          )}
 
-          <KintoneLikeBooleanCheckBox
-            rhfMethods={methods}
-            label="追加設定値の利用"
-            description="読取結果登録時、追加で値を設定する場合はチェックしてください。"
-            checkBoxLabel="利用する"
-            name="useCase.listRegist.useAdditionalValues"
-          />
-
-          {useRegistAdditinalValues && (
             <KintoneLikeTable
               rhfMethods={methods}
-              label="追加設定値"
+              label="更新値"
               description='QRコードの値以外に、追加で設定する値を指定してください（設定値については {"value": "登録値"}といったjson形式で設定。https://cybozu.dev/ja/kintone/docs/overview/field-types/#field-type-update を参照）。'
-              name="useCase.listRegist.additionalValues"
+              name="useCase.listUpdate.updateValues"
               defaultValue={{ field: "", value: "" }}
               fieldMetas={[
                 {
@@ -301,112 +378,50 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
                   type: "singletext",
                   key: "value",
                   label: "設定値",
-                  style: {
-                    width: "40em",
-                  },
+                  style: { width: "40em" },
                 },
               ]}
             />
-          )}
 
-          <KintoneLikeBooleanCheckBox
-            label="登録前確認"
-            description="カード読取後、登録前に確認ダイアログを表示するかどうかを指定してください。"
-            checkBoxLabel="表示する"
-            rhfMethods={methods}
-            name="useCase.listRegist.confirmBefore"
-          />
+            <KintoneLikeBooleanCheckBox
+              label="更新前確認"
+              description="カード読取後、更新前に確認ダイアログを表示するかどうかを指定してください。"
+              checkBoxLabel="表示する"
+              rhfMethods={methods}
+              name="useCase.listUpdate.confirmBefore"
+            />
 
-          <KintoneLikeBooleanCheckBox
-            label="登録後通知"
-            description="登録後に通知メッセージを表示するかどうかを指定してください。"
-            checkBoxLabel="表示する"
-            rhfMethods={methods}
-            name="useCase.listRegist.notifyAfter"
-          />
-        </>
-      )}
+            <KintoneLikeBooleanCheckBox
+              label="更新後通知"
+              description="更新後に通知メッセージを表示するかどうかを指定してください。"
+              checkBoxLabel="表示する"
+              rhfMethods={methods}
+              name="useCase.listUpdate.notifyAfter"
+            />
+          </>
+        )}
 
-      {listUpdateEnabled && (
-        <>
-          <p className="kintoneplugin-label">■一覧での更新用設定</p>
-          <KintoneLikeSelect
-            label="一覧名"
-            description="機能を有効にする一覧の名称を指定してください。"
-            name="useCase.listUpdate.targetViewName"
-            options={viewNames}
-            rhfMethods={methods}
-            required
-          />
+        {recordEnabled && (
+          <>
+            <p className="kintoneplugin-label">■詳細画面用設定</p>
+            <KintoneLikeSelect
+              label="カードリーダー実行用ボタンの配置スペース"
+              description="カード読み取りの実行ボタンを配置するフォーム内のスペースを指定してください。"
+              name="useCase.record.targetSpacer"
+              options={spaceFields}
+              rhfMethods={methods}
+              required
+            />
+          </>
+        )}
 
-          <KintoneLikeSingleText
-            rhfMethods={methods}
-            label="追加絞込条件"
-            description="QRコードの値以外に、追加で指定する絞込条件を指定してください（クエリの記法については、https://cybozu.dev/ja/kintone/docs/overview/query/ を参照）。"
-            name="useCase.listUpdate.additionalQuery"
-            style={{ width: "40em" }}
-          />
-
-          <KintoneLikeTable
-            rhfMethods={methods}
-            label="更新値"
-            description='QRコードの値以外に、追加で設定する値を指定してください（設定値については {"value": "登録値"}といったjson形式で設定。https://cybozu.dev/ja/kintone/docs/overview/field-types/#field-type-update を参照）。'
-            name="useCase.listUpdate.updateValues"
-            defaultValue={{ field: "", value: "" }}
-            fieldMetas={[
-              {
-                type: "select",
-                key: "field",
-                label: "フィールドコード",
-                options: fields,
-              },
-              {
-                type: "singletext",
-                key: "value",
-                label: "設定値",
-                style: { width: "40em" },
-              },
-            ]}
-          />
-
-          <KintoneLikeBooleanCheckBox
-            label="更新前確認"
-            description="カード読取後、更新前に確認ダイアログを表示するかどうかを指定してください。"
-            checkBoxLabel="表示する"
-            rhfMethods={methods}
-            name="useCase.listUpdate.confirmBefore"
-          />
-
-          <KintoneLikeBooleanCheckBox
-            label="更新後通知"
-            description="更新後に通知メッセージを表示するかどうかを指定してください。"
-            checkBoxLabel="表示する"
-            rhfMethods={methods}
-            name="useCase.listUpdate.notifyAfter"
-          />
-        </>
-      )}
-
-      {recordEnabled && (
-        <>
-          <p className="kintoneplugin-label">■詳細画面用設定</p>
-          <KintoneLikeSelect
-            label="カードリーダー実行用ボタンの配置スペース"
-            description="カード読み取りの実行ボタンを配置するフォーム内のスペースを指定してください。"
-            name="useCase.record.targetSpacer"
-            options={spaceFields}
-            rhfMethods={methods}
-            required
-          />
-        </>
-      )}
-
-      <input
-        className="kintoneplugin-button-normal"
-        type="submit"
-        title="設定を保存"
-        value="設定を保存"
-      />
-    </form>
+        <input
+          className="kintoneplugin-button-normal"
+          type="submit"
+          title="設定を保存"
+          value="設定を保存"
+        />
+      </form>
+    </>
   );
 }

@@ -26,7 +26,11 @@ const client = new KintoneRestAPIClient();
  */
 export function AppRecord({ PLUGIN_ID }: { PLUGIN_ID: string }) {
   // pluginに保存した設定情報を取得
-  const config = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
+  const result = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
+  if (!result.success) {
+    throw new Error("プラグインの設定にエラーがあります");
+  }
+  const config = result.data;
 
   /**
    * レコード編集処理
@@ -155,7 +159,11 @@ export function AppIndex({
       if (!app) throw new Error("アプリケーションのIDが取得できません。");
 
       // pluginに保存した設定情報を取得
-      const config = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
+      const result = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
+      if (!result.success) {
+        throw new Error("プラグインの設定にエラーがあります");
+      }
+      const config = result.data;
 
       // カード読取
       const felicaData = await readCard(setMessage, config);

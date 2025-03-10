@@ -16,7 +16,13 @@ import { pluginConfigSchema } from "./types";
       "app.record.index.edit.show",
     ],
     (event) => {
-      const config = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
+      // pluginに保存した設定情報を取得
+      const result = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
+      if (!result.success) {
+        throw new Error("プラグインの設定にエラーがあります");
+      }
+      const config = result.data;
+
       if (!config.useCase.types.includes("record") || !config.useCase.record)
         return;
 
@@ -37,7 +43,12 @@ import { pluginConfigSchema } from "./types";
   );
 
   kintone.events.on(["app.record.index.show"], (event) => {
-    const config = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
+    // pluginに保存した設定情報を取得
+    const result = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
+    if (!result.success) {
+      throw new Error("プラグインの設定にエラーがあります");
+    }
+    const config = result.data;
 
     // 一覧画面用途のモードを判定
     let mode: IndexMode | undefined = undefined;
