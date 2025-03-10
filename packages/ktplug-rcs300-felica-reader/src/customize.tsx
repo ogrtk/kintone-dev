@@ -13,7 +13,7 @@ import { pluginConfigSchema } from "./types";
     [
       "app.record.edit.show",
       "app.record.create.show",
-      "app.record.index.edit.show",
+      // "app.record.index.edit.show",
     ],
     (event) => {
       // pluginに保存した設定情報を取得
@@ -67,10 +67,11 @@ import { pluginConfigSchema } from "./types";
 
     if (mode) {
       const el = kintone.app.getHeaderSpaceElement();
-      if (el) {
-        const root = createRoot(el);
-        root.render(<AppIndex PLUGIN_ID={PLUGIN_ID} indexMode={mode} />);
+      if (!el) {
+        throw new Error("カードリーダー設置用のヘッダスペースが取得できません");
       }
+      const root = createRoot(el);
+      root.render(<AppIndex PLUGIN_ID={PLUGIN_ID} indexMode={mode} />);
     }
     return event;
   });

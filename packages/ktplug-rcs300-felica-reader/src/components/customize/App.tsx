@@ -17,8 +17,6 @@ import { useEffect, useState } from "react";
 
 type FelicaData = { idm?: string; memory?: string };
 
-const client = new KintoneRestAPIClient();
-
 /**
  * 詳細画面の処理
  * @param param0.PLUGIN_ID プラグインのID
@@ -314,6 +312,7 @@ async function regist(
     !config.useCase.listRegist
   )
     throw new Error("登録処理を行う設定になっていません。処理を中断します。");
+  const client = new KintoneRestAPIClient();
 
   const msg = `(${felicaData.idm ? `IDm:${felicaData.idm} ` : ""}${felicaData.memory ? `memory:${felicaData.memory}` : ""})`;
 
@@ -414,6 +413,7 @@ async function update(
   )
     throw new Error("更新処理を行う設定になっていません。処理を中断します。");
 
+  const client = new KintoneRestAPIClient();
   const msg = `(${felicaData.idm ? `IDm:${felicaData.idm} ` : ""}${felicaData.memory ? `memory:${felicaData.memory}` : ""})`;
 
   // 続行確認

@@ -1,0 +1,35 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug ktplug-qrcode-reader",
+      "runtimeExecutable": "pnpm",
+      "args": [
+        "--filter",
+        "ktplug-qrcode-reader",
+        "run",
+        "test"
+      ],
+      "autoAttachChildProcesses": true,
+      "console": "integratedTerminal",
+      "smartStep": true
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug ktplug-rcs300-felica-reader",
+      "runtimeExecutable": "pnpm",
+      "args": [
+        "--filter",
+        "ktplug-rcs300-felica-reader",
+        "run",
+        "test"
+      ],
+      "autoAttachChildProcesses": true,
+      "console": "integratedTerminal",
+      "smartStep": true
+    },
+  ]
+}

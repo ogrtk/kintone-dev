@@ -39,7 +39,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
 
   // react-hook-form
   const methods = useForm<PluginConfig>({
-    defaultValues: undefined,
+    defaultValues: {},
     resolver: zodResolver(pluginConfigSchema),
   });
   const { handleSubmit, watch, reset } = methods;
@@ -142,7 +142,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
         />
 
         {(readType === "idm" || readType === "both") && (
-          <>
+          <section>
             <p className="kintoneplugin-label">■IDm読取設定</p>
 
             <KintoneLikeSelect
@@ -161,10 +161,10 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
               rhfMethods={methods}
               options={singleTextFields}
             />
-          </>
+          </section>
         )}
         {(readType === "memory" || readType === "both") && (
-          <>
+          <section>
             <p className="kintoneplugin-label">■メモリ読取設定</p>
             <KintoneLikeSingleText
               label="データ名称"
@@ -229,7 +229,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
               rhfMethods={methods}
               required
             />
-          </>
+          </section>
         )}
 
         {readType === "both" && (
@@ -260,7 +260,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
         />
 
         {listRegistEnabled && (
-          <>
+          <section>
             <p className="kintoneplugin-label">■一覧での登録用設定</p>
             <KintoneLikeSelect
               label="一覧名"
@@ -338,11 +338,11 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
               rhfMethods={methods}
               name="useCase.listRegist.notifyAfter"
             />
-          </>
+          </section>
         )}
 
         {listUpdateEnabled && (
-          <>
+          <section>
             <p className="kintoneplugin-label">■一覧での更新用設定</p>
             <KintoneLikeSelect
               label="一覧名"
@@ -398,11 +398,11 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
               rhfMethods={methods}
               name="useCase.listUpdate.notifyAfter"
             />
-          </>
+          </section>
         )}
 
         {recordEnabled && (
-          <>
+          <section>
             <p className="kintoneplugin-label">■詳細画面用設定</p>
             <KintoneLikeSelect
               label="カードリーダー実行用ボタンの配置スペース"
@@ -412,7 +412,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
               rhfMethods={methods}
               required
             />
-          </>
+          </section>
         )}
 
         <input

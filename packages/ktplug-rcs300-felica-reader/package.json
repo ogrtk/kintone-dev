@@ -4,6 +4,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "test": "vitest",
+    "coverage": "vitest run --coverage ",
     "check": "biome check --write",
     "build:dev": "pnpm run check && vite build",
     "dev": "concurrently 'pnpm run build:dev --watch' 'vite dev'",
@@ -27,12 +29,10 @@
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
     "@kintone/rest-api-client": "^5.6.0",
-    "i18next": "^24.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.54.2",
     "zod": "^3.24.1",
-    "zod-i18n-map": "^2.27.0",
     "@ogrtk/shared": "workspace:*"
   }
 }
