@@ -10,7 +10,7 @@ import {
 import { ErrorMessage } from "./ErrorMessage";
 import "../index.css";
 import type React from "react";
-import { Fragment } from "react";
+import { Fragment, useEffect } from "react";
 import { KintoneLikeSelectWithoutLabel } from "./KintoneLikeSelect";
 import { KintoneLikeSingleTextWithoutLabel } from "./KintoneLikeSingleText";
 
@@ -64,9 +64,11 @@ export function KintoneLikeTable<
     name: name,
   });
 
-  if (fields.length === 0) {
-    append(defaultValue);
-  }
+  useEffect(() => {
+    if (fields.length === 0) {
+      append(defaultValue);
+    }
+  }, [append, defaultValue, fields]);
 
   return (
     <div className="setting">
