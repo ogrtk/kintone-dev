@@ -2,6 +2,7 @@ import {
   type KintoneRecordField,
   KintoneRestAPIClient,
 } from "@kintone/rest-api-client";
+import { T } from "vitest/dist/chunks/environment.d8YfPkTm.js";
 import type { ZodSchema, z } from "zod";
 
 /**
@@ -13,21 +14,11 @@ export type KintoneRecord = {
   };
 };
 
-type RecordUrlBase = {
-  app: number;
-};
-type RecordUrlShow = RecordUrlBase & {
-  mode: "show";
-  recordId: string;
-};
-type RecordUrlEdit = RecordUrlBase & {
-  mode: "edit";
-  recordId: string;
-};
-type RecordUrlAdd = RecordUrlBase & {
-  mode: "add";
-};
-type RecordUrlParam = RecordUrlShow | RecordUrlEdit | RecordUrlAdd;
+/**
+ * kintoneレコードURL取得（追加・編集・詳細画面に応じたURLを取得）
+ * @param param
+ * @returns
+ */
 export function getRecordUrl(param: RecordUrlParam): string {
   const common = `${location.origin}/k/${param.app}/`;
 
@@ -40,24 +31,40 @@ export function getRecordUrl(param: RecordUrlParam): string {
       return `${common}edit`;
   }
 }
+/** kintoneレコードURL取得のパラメータ（共通項目） */
+type RecordUrlBase = {
+  app: number;
+};
+/** kintoneレコードURL取得のパラメータ（詳細） */
+type RecordUrlShow = RecordUrlBase & {
+  mode: "show";
+  recordId: string;
+};
+/** kintoneレコードURL取得のパラメータ（編集） */
+type RecordUrlEdit = RecordUrlBase & {
+  mode: "edit";
+  recordId: string;
+};
+/** kintoneレコードURL取得のパラメータ（追加） */
+type RecordUrlAdd = RecordUrlBase & {
+  mode: "add";
+};
+/** kintoneレコードURL取得のパラメータ（詳細・編集・追加） */
+type RecordUrlParam = RecordUrlShow | RecordUrlEdit | RecordUrlAdd;
 
 /**
- * 選択肢の型
+ * kintone項目の選択肢型
  */
 export type SelectOption = { code: string; label: string };
 
-type FieldWith<T extends string, V> = {
-  type: T;
-  value: V;
-};
-export type KintoneFieldTypeLiterals =
-  KintoneRecordField.OneOf extends FieldWith<
-    infer T,
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    any
-  >
-    ? T
-    : never;
+/**
+ * Kintone のフィールド型を表すリテラル型
+ */
+export type KintoneFieldTypeLiterals = KintoneRecordField.OneOf extends {
+  type: infer T;
+}
+  ? T
+  : never;
 
 /**
  * kintoneのフィールド取得ユーティリティクラス
@@ -189,9 +196,11 @@ export function storePluginConfig<T>(data: T, callback: () => void) {
 export function restorePluginConfig<T extends ZodSchema>(
   id: string,
   schema: T,
-): z.infer<typeof schema> {
+): ReturnType<typeof schema.safeParse> | undefined {
+  // ): z.infer<typeof schema> {
   const config = kintone.plugin.app.getConfig(id);
-  return config.data
-    ? schema.safeParse(JSON.parse(config.data)).data
-    : undefined;
+  // return config.data
+  //   ? schema.safeParse(JSON.parse(config.data)).data
+  //   : undefined;
+  return config.data ? schema.safeParse(JSON.parse(config.data)) : undefined;
 }
