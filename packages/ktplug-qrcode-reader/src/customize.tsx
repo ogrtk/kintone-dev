@@ -90,19 +90,9 @@ import { type PluginConfig, pluginConfigSchema } from "./types";
  * @returns
  */
 const getConfig = (PLUGIN_ID: string): PluginConfig => {
-  const config = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
-  // 以下はテスト用ロジック
-  // const config: PluginConfig = {
-  //   useCase: {
-  //     types: ["listRegist"],
-  //     listRegist: {
-  //       targetViewName: "target",
-  //       useAdditionalValues: true,
-  //       additionalValues: [{ field: "text", value: "aaaa" }],
-  //     },
-  //     record: { space: "reader" },
-  //   },
-  //   qrCode: { dataName: "チケットコード", field: "ticketCode" },
-  // };
-  return config;
+  const result = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
+  if (!result.success) {
+    throw new Error("プラグインの設定にエラーがあります");
+  }
+  return result.data;
 };

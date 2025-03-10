@@ -54,14 +54,17 @@ describe("編集画面・追加画面のカスタマイズ処理", () => {
     "指定したスペース位置にAppRecordコンポーネントが設置される(イベント:%s)",
     (eventName) => {
       /* arrange */
-      const mockConfig: PluginConfig = {
+      const mockedConfig: PluginConfig = {
         useCase: {
           types: ["record"],
           record: { space: "reader" },
         },
         qrCode: { dataName: "コード", field: "code" },
       };
-      (restorePluginConfig as Mock).mockReturnValue(mockConfig);
+      (restorePluginConfig as Mock).mockReturnValue({
+        success: true,
+        data: mockedConfig,
+      });
       const mockElement = document.createElement("div");
       (globalThis.kintone.app.record.getSpaceElement as Mock).mockReturnValue(
         mockElement,
@@ -82,20 +85,23 @@ describe("編集画面・追加画面のカスタマイズ処理", () => {
       expect(createRoot as Mock).toHaveBeenCalledWith(mockElement);
       const rootResult = (createRoot as Mock).mock.results[0].value;
       expect(rootResult.render).toHaveBeenCalledWith(
-        <AppRecord config={mockConfig} />,
+        <AppRecord config={mockedConfig} />,
       );
     },
   );
 
   test("recordのconfig設定が無い場合は中断", () => {
     /* arrange */
-    const mockConfig: PluginConfig = {
+    const mockedConfig: PluginConfig = {
       useCase: {
         types: ["listRegist"],
       },
       qrCode: { dataName: "コード", field: "code" },
     };
-    (restorePluginConfig as Mock).mockReturnValue(mockConfig);
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: true,
+      data: mockedConfig,
+    });
     // スペースが存在しないものとする
     (globalThis.kintone.app.record.getSpaceElement as Mock).mockReturnValue(
       null,
@@ -117,14 +123,17 @@ describe("編集画面・追加画面のカスタマイズ処理", () => {
 
   test("QRコードリーダーの設置スペースが存在しない場合はエラー", () => {
     /* arrange */
-    const mockConfig: PluginConfig = {
+    const mockedConfig: PluginConfig = {
       useCase: {
         types: ["record"],
         record: { space: "reader" },
       },
       qrCode: { dataName: "コード", field: "code" },
     };
-    (restorePluginConfig as Mock).mockReturnValue(mockConfig);
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: true,
+      data: mockedConfig,
+    });
     // スペースが存在しないものとする
     (globalThis.kintone.app.record.getSpaceElement as Mock).mockReturnValue(
       null,
@@ -144,7 +153,7 @@ describe("編集画面・追加画面のカスタマイズ処理", () => {
 describe("index画面のカスタマイズ処理", () => {
   test("設定した一覧ビューにQRコードリーダーが設置される(regist)", () => {
     /* arrange */
-    const mockConfig: PluginConfig = {
+    const mockedConfig: PluginConfig = {
       useCase: {
         types: ["listRegist"],
         listRegist: {
@@ -156,7 +165,10 @@ describe("index画面のカスタマイズ処理", () => {
       },
       qrCode: { dataName: "コード", field: "code" },
     };
-    (restorePluginConfig as Mock).mockReturnValue(mockConfig);
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: true,
+      data: mockedConfig,
+    });
     const mockElement = document.createElement("div");
     (globalThis.kintone.app.getHeaderSpaceElement as Mock).mockReturnValue(
       mockElement,
@@ -175,13 +187,13 @@ describe("index画面のカスタマイズ処理", () => {
 
     const rootResult = (createRoot as Mock).mock.results[0].value;
     expect(rootResult.render).toHaveBeenCalledWith(
-      <AppIndex config={mockConfig} mode="regist" />,
+      <AppIndex config={mockedConfig} mode="regist" />,
     );
   });
 
   test("設定した一覧ビューにQRコードリーダーが設置される(update)", () => {
     /* arrange */
-    const mockConfig: PluginConfig = {
+    const mockedConfig: PluginConfig = {
       useCase: {
         types: ["listUpdate"],
         listUpdate: {
@@ -191,7 +203,10 @@ describe("index画面のカスタマイズ処理", () => {
       },
       qrCode: { dataName: "コード", field: "code" },
     };
-    (restorePluginConfig as Mock).mockReturnValue(mockConfig);
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: true,
+      data: mockedConfig,
+    });
     const mockElement = document.createElement("div");
     (globalThis.kintone.app.getHeaderSpaceElement as Mock).mockReturnValue(
       mockElement,
@@ -209,13 +224,13 @@ describe("index画面のカスタマイズ処理", () => {
     expect(createRoot as Mock).toHaveBeenCalledWith(mockElement);
     const rootResult = (createRoot as Mock).mock.results[0].value;
     expect(rootResult.render).toHaveBeenCalledWith(
-      <AppIndex config={mockConfig} mode="update" />,
+      <AppIndex config={mockedConfig} mode="update" />,
     );
   });
 
   test("設定した一覧ビューにQRコードリーダーが設置される(search)", () => {
     /* arrange */
-    const mockConfig: PluginConfig = {
+    const mockedConfig: PluginConfig = {
       useCase: {
         types: ["listSearch"],
         listSearch: {
@@ -224,7 +239,10 @@ describe("index画面のカスタマイズ処理", () => {
       },
       qrCode: { dataName: "コード", field: "code" },
     };
-    (restorePluginConfig as Mock).mockReturnValue(mockConfig);
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: true,
+      data: mockedConfig,
+    });
     const mockElement = document.createElement("div");
     (globalThis.kintone.app.getHeaderSpaceElement as Mock).mockReturnValue(
       mockElement,
@@ -242,19 +260,22 @@ describe("index画面のカスタマイズ処理", () => {
     expect(createRoot as Mock).toHaveBeenCalledWith(mockElement);
     const rootResult = (createRoot as Mock).mock.results[0].value;
     expect(rootResult.render).toHaveBeenCalledWith(
-      <AppIndex config={mockConfig} mode="search" />,
+      <AppIndex config={mockedConfig} mode="search" />,
     );
   });
 
   test("一覧用のconfig設定が無い場合は中断", () => {
     /* arrange */
-    const mockConfig: PluginConfig = {
+    const mockedConfig: PluginConfig = {
       useCase: {
         types: ["record"],
       },
       qrCode: { dataName: "コード", field: "code" },
     };
-    (restorePluginConfig as Mock).mockReturnValue(mockConfig);
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: true,
+      data: mockedConfig,
+    });
     const mockElement = document.createElement("div");
     (globalThis.kintone.app.getHeaderSpaceElement as Mock).mockReturnValue(
       mockElement,
@@ -274,7 +295,7 @@ describe("index画面のカスタマイズ処理", () => {
 
   test("QRコードリーダーの設置スペースが存在しない場合はエラー", () => {
     /* arrange */
-    const mockConfig: PluginConfig = {
+    const mockedConfig: PluginConfig = {
       useCase: {
         types: ["listSearch"],
         listSearch: {
@@ -283,7 +304,10 @@ describe("index画面のカスタマイズ処理", () => {
       },
       qrCode: { dataName: "コード", field: "code" },
     };
-    (restorePluginConfig as Mock).mockReturnValue(mockConfig);
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: true,
+      data: mockedConfig,
+    });
     (globalThis.kintone.app.getHeaderSpaceElement as Mock).mockReturnValue(
       null,
     );

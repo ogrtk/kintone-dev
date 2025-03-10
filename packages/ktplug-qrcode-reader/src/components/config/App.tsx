@@ -5,6 +5,7 @@ import {
 } from "@/src/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  ErrorMessage,
   KintoneLikeBooleanCheckBox,
   KintoneLikeCheckBox,
   KintoneLikeSelect,
@@ -37,6 +38,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
   const [fields, setFields] = useState<SelectOption[]>([]);
   const [spaceFields, setSpaceFields] = useState<SelectOption[]>([]);
   const [viewNames, setViewNames] = useState<SelectOption[]>([]);
+  const [messages, setMessages] = useState<string[]>([]);
 
   // react-hook-form
   const methods = useForm<PluginConfig>({
@@ -69,6 +71,12 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
     const fetchFieldsInfo = async () => {
       // pluginに保存した設定情報を取得
       const config = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
+      // エラーがある場合、メッセージ表示
+      if (!config.success) {
+        setMessages(config.error.errors.map((error) => error.message));
+      } else {
+        setMessages([]);
+      }
       // スペース項目取得
       const spaceFields = await kintoneFieldsRetriever.getRecordSpaceFields();
       // 項目取得
@@ -84,6 +92,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
         "RADIO_BUTTON",
         "RICH_TEXT",
       ]);
+      // console.log("🚀 ~ fetchFieldsInfo ~ fields:", fields);
       // 一覧名取得
       const viewNames = await kintoneFieldsRetriever.getViewNames();
 
@@ -93,7 +102,7 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
 
       // 動的に候補値を取得したselectについて、表示を正しくするためresetする
       // （useForm時点ではselectのlabelが存在しないため正しく表示できない）
-      reset(config);
+      reset(config.data);
     };
 
     fetchFieldsInfo();
@@ -111,105 +120,160 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
   };
 
   return (
-    <form onSubmit={handleSubmit(saveConfig)}>
-      {
-        <section>
-          <p className="kintoneplugin-label">【読取データ設定】</p>
-          <KintoneLikeSingleText
-            rhfMethods={methods}
-            label="データ名称"
-            description="画面表示で利用するデータの名称を設定してください。"
-            name="qrCode.dataName"
-          />
-          <KintoneLikeSelect
-            rhfMethods={methods}
-            label="データ設定用項目"
-            description="読み取ったデータを編集するフィールドのフィールドコードを指定してください。"
-            name="qrCode.field"
-            options={fields}
-            required
-          />
-        </section>
-      }
+    <>
+      {messages?.map((message) => (
+        <p key={message} className="kintoneplugin-alert">
+          {message}
+        </p>
+      ))}
 
-      <hr />
-      <p className="kintoneplugin-label">【用途種別設定】</p>
-
-      <KintoneLikeCheckBox
-        rhfMethods={methods}
-        label="用途種別選択"
-        description="本プラグインで利用する用途の種別を選択してください。"
-        name="useCase.types"
-        options={USECASE_TYPE_SELECTIONS}
-      />
-      {listSearchEnabled && (
-        <section>
-          <p className="kintoneplugin-label">■一覧での検索用設定</p>
-
-          <KintoneLikeSelect
-            rhfMethods={methods}
-            label="一覧名"
-            description="機能を有効にする一覧の名称を指定してください。"
-            name="useCase.listSearch.targetViewName"
-            options={viewNames}
-            required
-          />
-
-          <KintoneLikeSingleText
-            rhfMethods={methods}
-            label="絞り込み条件"
-            description="QRコードの値以外に、追加で指定する絞込条件を指定してください（クエリの記法については、https://cybozu.dev/ja/kintone/docs/overview/query/ を参照）。"
-            name="useCase.listSearch.additionalQuery"
-            style={{ width: "40em" }}
-          />
-        </section>
-      )}
-
-      {listRegistEnabled && (
-        <section>
-          <p className="kintoneplugin-label">■一覧での登録用設定</p>
-
-          <KintoneLikeSelect
-            rhfMethods={methods}
-            label="一覧名"
-            description="機能を有効にする一覧の名称を指定してください。"
-            name="useCase.listRegist.targetViewName"
-            options={viewNames}
-            required
-          />
-
-          <KintoneLikeBooleanCheckBox
-            rhfMethods={methods}
-            label="重複を許可しない"
-            description="QRコードから読み取ったデータについて、アプリ上での重複を禁止する場合はチェックしてください。"
-            checkBoxLabel="重複を許可しない"
-            name="useCase.listRegist.noDuplicate"
-          />
-
-          {noDuplicate && (
+      <form onSubmit={handleSubmit(saveConfig)}>
+        {
+          <section>
+            <p className="kintoneplugin-label">【読取データ設定】</p>
             <KintoneLikeSingleText
               rhfMethods={methods}
-              label="重複チェック時の追加検索条件"
-              description="QRコードの値以外に、追加で指定する検索条件を指定してください（クエリの記法については、https://cybozu.dev/ja/kintone/docs/overview/query/ を参照）。"
-              name="useCase.listRegist.duplicateCheckAdditionalQuery"
+              label="データ名称"
+              description="画面表示で利用するデータの名称を設定してください。"
+              name="qrCode.dataName"
+            />
+            <KintoneLikeSelect
+              rhfMethods={methods}
+              label="データ設定用項目"
+              description="読み取ったデータを編集するフィールドのフィールドコードを指定してください。"
+              name="qrCode.field"
+              options={fields}
+              required
+            />
+          </section>
+        }
+
+        <hr />
+        <p className="kintoneplugin-label">【用途種別設定】</p>
+
+        <KintoneLikeCheckBox
+          rhfMethods={methods}
+          label="用途種別選択"
+          description="本プラグインで利用する用途の種別を選択してください。"
+          name="useCase.types"
+          options={USECASE_TYPE_SELECTIONS}
+        />
+        {listSearchEnabled && (
+          <section>
+            <p className="kintoneplugin-label">■一覧での検索用設定</p>
+
+            <KintoneLikeSelect
+              rhfMethods={methods}
+              label="一覧名"
+              description="機能を有効にする一覧の名称を指定してください。"
+              name="useCase.listSearch.targetViewName"
+              options={viewNames}
+              required
+            />
+
+            <KintoneLikeSingleText
+              rhfMethods={methods}
+              label="絞り込み条件"
+              description="QRコードの値以外に、追加で指定する絞込条件を指定してください（クエリの記法については、https://cybozu.dev/ja/kintone/docs/overview/query/ を参照）。"
+              name="useCase.listSearch.additionalQuery"
               style={{ width: "40em" }}
             />
-          )}
+          </section>
+        )}
 
-          <KintoneLikeBooleanCheckBox
-            rhfMethods={methods}
-            label="追加設定値の利用"
-            description="読取結果登録時、追加で値を設定する場合はチェックしてください。"
-            checkBoxLabel="利用する"
-            name="useCase.listRegist.useAdditionalValues"
-          />
+        {listRegistEnabled && (
+          <section>
+            <p className="kintoneplugin-label">■一覧での登録用設定</p>
 
-          {useRegistAdditinalValues && (
+            <KintoneLikeSelect
+              rhfMethods={methods}
+              label="一覧名"
+              description="機能を有効にする一覧の名称を指定してください。"
+              name="useCase.listRegist.targetViewName"
+              options={viewNames}
+              required
+            />
+
+            <KintoneLikeBooleanCheckBox
+              rhfMethods={methods}
+              label="重複を許可しない"
+              description="QRコードから読み取ったデータについて、アプリ上での重複を禁止する場合はチェックしてください。"
+              checkBoxLabel="重複を許可しない"
+              name="useCase.listRegist.noDuplicate"
+            />
+
+            {noDuplicate && (
+              <KintoneLikeSingleText
+                rhfMethods={methods}
+                label="重複チェック時の追加検索条件"
+                description="QRコードの値以外に、追加で指定する検索条件を指定してください（クエリの記法については、https://cybozu.dev/ja/kintone/docs/overview/query/ を参照）。"
+                name="useCase.listRegist.duplicateCheckAdditionalQuery"
+                style={{ width: "40em" }}
+              />
+            )}
+
+            <KintoneLikeBooleanCheckBox
+              rhfMethods={methods}
+              label="追加設定値の利用"
+              description="読取結果登録時、追加で値を設定する場合はチェックしてください。"
+              checkBoxLabel="利用する"
+              name="useCase.listRegist.useAdditionalValues"
+            />
+
+            {useRegistAdditinalValues && (
+              <KintoneLikeTable
+                rhfMethods={methods}
+                label="追加設定値"
+                description='QRコードの値以外に、追加で設定する値を指定してください（設定値については {"value": "登録値"}といったjson形式で設定。https://cybozu.dev/ja/kintone/docs/overview/field-types/#field-type-update を参照）。'
+                name="useCase.listRegist.additionalValues"
+                defaultValue={{ field: "", value: "" }}
+                fieldMetas={[
+                  {
+                    type: "select",
+                    key: "field",
+                    label: "フィールドコード",
+                    options: fields,
+                  },
+                  {
+                    type: "singletext",
+                    key: "value",
+                    label: "設定値",
+                    style: {
+                      width: "40em",
+                    },
+                  },
+                ]}
+              />
+            )}
+          </section>
+        )}
+
+        {listUpdateEnabled && (
+          <section>
+            <p className="kintoneplugin-label">■一覧での更新用設定</p>
+
+            <KintoneLikeSelect
+              rhfMethods={methods}
+              label="一覧名"
+              description="機能を有効にする一覧の名称を指定してください。"
+              name="useCase.listUpdate.targetViewName"
+              options={viewNames}
+              required
+            />
+
+            <KintoneLikeSingleText
+              rhfMethods={methods}
+              label="追加絞込条件"
+              description="QRコードの値以外に、追加で指定する絞込条件を指定してください（クエリの記法については、https://cybozu.dev/ja/kintone/docs/overview/query/ を参照）。"
+              name="useCase.listUpdate.additionalQuery"
+              style={{ width: "40em" }}
+            />
+
             <KintoneLikeTable
               rhfMethods={methods}
-              label="追加設定値"
+              label="更新値"
               description='QRコードの値以外に、追加で設定する値を指定してください（設定値については {"value": "登録値"}といったjson形式で設定。https://cybozu.dev/ja/kintone/docs/overview/field-types/#field-type-update を参照）。'
-              name="useCase.listRegist.additionalValues"
+              name="useCase.listUpdate.updateValues"
               defaultValue={{ field: "", value: "" }}
               fieldMetas={[
                 {
@@ -222,82 +286,35 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
                   type: "singletext",
                   key: "value",
                   label: "設定値",
-                  style: {
-                    width: "40em",
-                  },
+                  style: { width: "40em" },
                 },
               ]}
             />
-          )}
-        </section>
-      )}
+          </section>
+        )}
 
-      {listUpdateEnabled && (
-        <section>
-          <p className="kintoneplugin-label">■一覧での更新用設定</p>
+        {recordEnabled && (
+          <section>
+            <p className="kintoneplugin-label">■詳細画面用設定</p>
 
-          <KintoneLikeSelect
-            rhfMethods={methods}
-            label="一覧名"
-            description="機能を有効にする一覧の名称を指定してください。"
-            name="useCase.listUpdate.targetViewName"
-            options={viewNames}
-            required
-          />
+            <KintoneLikeSelect
+              rhfMethods={methods}
+              label="QRコードリーダー配置用スペース"
+              description="QRコードリーダーの配置場所となる詳細画面内のスペースを指定してください。"
+              name="useCase.record.space"
+              options={spaceFields}
+              required
+            />
+          </section>
+        )}
 
-          <KintoneLikeSingleText
-            rhfMethods={methods}
-            label="追加絞込条件"
-            description="QRコードの値以外に、追加で指定する絞込条件を指定してください（クエリの記法については、https://cybozu.dev/ja/kintone/docs/overview/query/ を参照）。"
-            name="useCase.listUpdate.additionalQuery"
-            style={{ width: "40em" }}
-          />
-
-          <KintoneLikeTable
-            rhfMethods={methods}
-            label="更新値"
-            description='QRコードの値以外に、追加で設定する値を指定してください（設定値については {"value": "登録値"}といったjson形式で設定。https://cybozu.dev/ja/kintone/docs/overview/field-types/#field-type-update を参照）。'
-            name="useCase.listUpdate.updateValues"
-            defaultValue={{ field: "", value: "" }}
-            fieldMetas={[
-              {
-                type: "select",
-                key: "field",
-                label: "フィールドコード",
-                options: fields,
-              },
-              {
-                type: "singletext",
-                key: "value",
-                label: "設定値",
-                style: { width: "40em" },
-              },
-            ]}
-          />
-        </section>
-      )}
-
-      {recordEnabled && (
-        <section>
-          <p className="kintoneplugin-label">■詳細画面用設定</p>
-
-          <KintoneLikeSelect
-            rhfMethods={methods}
-            label="QRコードリーダー配置用スペース"
-            description="QRコードリーダーの配置場所となる詳細画面内のスペースを指定してください。"
-            name="useCase.record.space"
-            options={spaceFields}
-            required
-          />
-        </section>
-      )}
-
-      <input
-        className="kintoneplugin-button-normal"
-        type="submit"
-        title="設定を保存"
-        value="設定を保存"
-      />
-    </form>
+        <input
+          className="kintoneplugin-button-normal"
+          type="submit"
+          title="設定を保存"
+          value="設定を保存"
+        />
+      </form>
+    </>
   );
 }

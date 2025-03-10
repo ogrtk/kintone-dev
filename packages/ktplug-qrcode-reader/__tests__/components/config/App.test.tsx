@@ -90,7 +90,10 @@ describe("Appコンポーネント", () => {
         record: { space: "space1" },
       },
     };
-    (restorePluginConfig as Mock).mockReturnValue(mockedConfig);
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: true,
+      data: mockedConfig,
+    });
 
     /* action */
     render(<App PLUGIN_ID={PLUGIN_ID} />);
@@ -133,7 +136,10 @@ describe("Appコンポーネント", () => {
         },
       },
     };
-    (restorePluginConfig as Mock).mockReturnValue(mockedConfig);
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: true,
+      data: mockedConfig,
+    });
 
     /* action */
     render(<App PLUGIN_ID={PLUGIN_ID} />);
@@ -208,7 +214,10 @@ describe("Appコンポーネント", () => {
         },
       },
     };
-    (restorePluginConfig as Mock).mockReturnValue(mockedConfig);
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: true,
+      data: mockedConfig,
+    });
 
     /* action */
     render(<App PLUGIN_ID={PLUGIN_ID} />);
@@ -246,7 +255,10 @@ describe("Appコンポーネント", () => {
         },
       },
     };
-    (restorePluginConfig as Mock).mockReturnValue(mockedConfig);
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: true,
+      data: mockedConfig,
+    });
 
     /* action */
     render(<App PLUGIN_ID={PLUGIN_ID} />);
@@ -305,7 +317,10 @@ describe("Appコンポーネント", () => {
         },
       },
     };
-    (restorePluginConfig as Mock).mockReturnValue(mockedConfig);
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: true,
+      data: mockedConfig,
+    });
 
     /* action */
     render(<App PLUGIN_ID={PLUGIN_ID} />);
@@ -346,11 +361,14 @@ describe("Appコンポーネント", () => {
 
   test("フォームの保存時に `storePluginConfig` が正しく呼び出される", async () => {
     /* arrange */
-    const mockConfig = {
+    const mockedConfig = {
       qrCode: { dataName: "保存データ", field: "dataTextField" },
       useCase: { types: ["record"], record: { space: "space1" } },
     };
-    (restorePluginConfig as Mock).mockReturnValue(mockConfig);
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: true,
+      data: mockedConfig,
+    });
 
     /* action */
     render(<App PLUGIN_ID={PLUGIN_ID} />);
@@ -374,7 +392,17 @@ describe("Appコンポーネント", () => {
   });
 
   test("一覧の選択肢が正しく取得される", async () => {
-    /* arrange & action*/
+    /* arrange */
+    const mockedConfig = {
+      qrCode: { dataName: "保存データ", field: "dataTextField" },
+      useCase: { types: ["record"], record: { space: "space1" } },
+    };
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: true,
+      data: mockedConfig,
+    });
+
+    /* action */
     render(<App PLUGIN_ID={PLUGIN_ID} />);
 
     /* assert */
@@ -399,13 +427,16 @@ describe("Appコンポーネント", () => {
 
   test("用途種別を変更すると、関連する入力フォームが表示される", async () => {
     /* arrange */
-    const mockConfig: PluginConfig = {
+    const mockedConfig: PluginConfig = {
       qrCode: { dataName: "テストデータ", field: "textField" },
       useCase: {
         types: [],
       },
     };
-    (restorePluginConfig as Mock).mockReturnValue(mockConfig);
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: true,
+      data: mockedConfig,
+    });
 
     /* action */
     render(<App PLUGIN_ID={PLUGIN_ID} />);
@@ -419,11 +450,14 @@ describe("Appコンポーネント", () => {
 
   test("QRコードリーダー配置用スペースの選択肢が正しく表示される", async () => {
     /* arrange */
-    const mockConfig: PluginConfig = {
+    const mockedConfig: PluginConfig = {
       qrCode: { dataName: "保存データ", field: "dataTextField" },
       useCase: { types: ["record"] },
     };
-    (restorePluginConfig as Mock).mockReturnValue(mockConfig);
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: true,
+      data: mockedConfig,
+    });
 
     /* action */
     render(<App PLUGIN_ID={PLUGIN_ID} />);
