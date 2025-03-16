@@ -1,4 +1,4 @@
-import { FelicaService } from "./FeliCaService";
+import { FelicaService } from "./FelicaService";
 import { sleep } from "./utils";
 
 export type BlockListParam = {
@@ -67,13 +67,13 @@ export class WebUsbCardReader {
    * @returns
    */
   public async polling(maxTryCount = 10) {
-    let tryCount = 0;
+    let nextTryCount = 1;
     let response: Awaited<ReturnType<typeof this.felicaService.polling>> =
       undefined;
 
     try {
-      while (!response && tryCount < maxTryCount) {
-        tryCount++;
+      while (!response && nextTryCount <= maxTryCount) {
+        nextTryCount++;
         await this.felicaService.openDevice();
         response = await this.felicaService.polling();
         await this.felicaService.closeDevice();
@@ -139,9 +139,7 @@ export class WebUsbCardReader {
     } catch (e: unknown) {
       if (this.felicaService.s300.opened)
         await this.felicaService.closeDevice();
-      if (e instanceof Error) {
-        alert(e.message);
-      }
+      throw e;
     }
   }
 }

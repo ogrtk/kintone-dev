@@ -74,13 +74,13 @@ export function AppRecord({ PLUGIN_ID }: { PLUGIN_ID: string }) {
       }
 
       if (config.readConfig.readType === "idm") {
-        const readed = await readIdm(webUsbCardreader);
-        if (!readed) {
-          alert("カード読み込みに失敗しました。");
+        const readResult = await webUsbCardreader.polling();
+        if (!readResult) {
+          alert("カード読み込みに失敗しました。(polling)");
           return;
         }
         editRecord(
-          readed.idm,
+          readResult.idm,
           config.readConfig.idm.fieldCd1,
           config.readConfig.idm.fieldCd2,
         );
@@ -90,7 +90,7 @@ export function AppRecord({ PLUGIN_ID }: { PLUGIN_ID: string }) {
           config.readConfig.memory,
         );
         if (!readed) {
-          alert("カード読み込みに失敗しました。");
+          alert("カード読み込みに失敗しました。(readIdmAndMemory)");
           return;
         }
         editRecord(
@@ -196,14 +196,6 @@ export function AppIndex({
 }
 
 /**
- * 	IDm読み込み処理
- */
-async function readIdm(webUsbCardreader: WebUsbCardReader) {
-  const readed = await webUsbCardreader.polling();
-  return readed;
-}
-
-/**
  * 	IDm及びメモリの読み込み処理
  */
 async function readIdmAndMemory(
@@ -265,7 +257,7 @@ async function readCard(
   while (!idm) {
     try {
       // IDm読み取り
-      idm = (await readIdm(webUsbCardreader))?.idm;
+      idm = (await webUsbCardreader.polling())?.idm;
       // memory読取設定の場合、続けて読み取りを行う
       if (
         (config.readConfig.readType === "memory" ||

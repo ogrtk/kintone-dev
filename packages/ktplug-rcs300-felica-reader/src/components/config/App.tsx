@@ -24,6 +24,8 @@ import { useEffect, useMemo, useState } from "react";
 import { type SubmitHandler, useForm } from "react-hook-form";
 
 export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
+  const app = kintone.app.getId();
+  if (!app) throw new Error("appが取得できません。");
   // kintoneの項目取得ユーティリティ
   const kintoneFieldsRetriever = useMemo(
     () => new KintoneFieldsRetriever(),
@@ -66,13 +68,14 @@ export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
     const result = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
     // エラーがある場合、メッセージ表示
     if (!result.success) {
-      setMessages(result.error.errors.map((error) => error.message));
+      setMessages(
+        result.error.errors.map(
+          (error) => ` 項目：${error.path} エラー：${error.message}`,
+        ),
+      );
     } else {
       setMessages([]);
     }
-
-    const app = kintone.app.getId();
-    if (!app) throw new Error("appが取得できません。");
 
     // 選択肢の取得
     const fetchFieldsInfo = async () => {

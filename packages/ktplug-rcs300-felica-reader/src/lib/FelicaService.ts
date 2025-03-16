@@ -241,7 +241,7 @@ export class FelicaService {
             `サービスコードリストの桁数が不適切です:${cur.serviceCode}`,
           );
         }
-        serviceCodeList.push(...hexStringToByteArray(cur.serviceCode));
+        acc.serviceCodeList.push(...hexStringToByteArray(cur.serviceCode));
         acc.blockList.push(...this.constructBlockList(cur.blockListParam, 0));
         acc.totalBlockCount +=
           cur.blockListParam.blockNoEnd - cur.blockListParam.blockNoStart + 1;
@@ -352,7 +352,7 @@ export class FelicaService {
    * @param param ブロック範囲とアクセスモード
    * @param serviceListOrder サービスリスト内の順序
    */
-  constructBlockList(
+  private constructBlockList(
     param: {
       accessMode: "normal" | "purse-cashback";
       blockNoStart: number;

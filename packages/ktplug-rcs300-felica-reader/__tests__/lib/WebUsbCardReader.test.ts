@@ -1,18 +1,15 @@
+import type {
+  FelicaPollingResult,
+  FelicaReadWithoutEncryptionResult,
+  FelicaRequestServiceResult,
+} from "@/src/lib/FelicaService";
 import {
-  BlockListParam,
-  ReadServiceParam,
+  type ReadServiceParam,
   WebUsbCardReader,
 } from "@/src/lib/WebUsbCardReader";
-import {
-  type Mock,
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  test,
-  vi,
-} from "vitest";
+import { type Mock, beforeEach, describe, expect, test, vi } from "vitest";
+// RUN_SLOW_TESTS 環境変数がセットされている場合は実行、なければskipする
+const testIfSlow = process.env.RUN_SLOW_TESTS ? test : test.skip;
 
 // Mock 用の USBDevice
 class MockUSBDevice {
@@ -53,6 +50,57 @@ class MockUSBDevice {
   async releaseInterface(_interfaceNumber: number) {}
 }
 
+// FelicaService のモッククラス
+const mockFelicaService = {
+  // s300 の opened 状態を管理するオブジェクト
+  s300: { opened: false },
+
+  // openDevice() を呼ぶと opened を true にする
+  openDevice: vi.fn(async () => {
+    mockFelicaService.s300.opened = true;
+  }),
+  // closeDevice() を呼ぶと opened を false にする
+  closeDevice: vi.fn(async () => {
+    mockFelicaService.s300.opened = false;
+  }),
+  // polling() はテスト毎に結果を返すようにモック化
+  polling: vi.fn(async (): Promise<FelicaPollingResult | undefined> => {
+    // デフォルトは有効な応答を返すが、テストごとに mockResolvedValueOnce で上書き可能
+    return { idm: "fakeIdm", systemCode: "0ABC" };
+  }),
+  // requestService() のモック実装
+  requestService: vi.fn(
+    async (
+      idm: string,
+      nodeCodeList: number[],
+    ): Promise<FelicaRequestServiceResult | undefined> => {
+      return { idm, nodeCount: "nodeCount", nodeKeyVerList: "nodeKeyVerList" };
+    },
+  ),
+  // readWithoutEncryption() のモック実装
+  readWithoutEncryption: vi.fn(
+    async (
+      idm: string,
+      params: Array<{
+        serviceCode: string;
+        blockListParam: {
+          accessMode: "normal" | "purse-cashback";
+          blockNoStart: number;
+          blockNoEnd: number;
+        };
+      }>,
+    ): Promise<FelicaReadWithoutEncryptionResult | undefined> => {
+      return {
+        idm,
+        blockData: "aa",
+        blockSize: "2",
+        statusFlag1: "flg1",
+        statusFlag2: "flg2",
+      };
+    },
+  ),
+};
+
 // Mock 用の navigator.usb
 vi.stubGlobal("navigator", {
   usb: {
@@ -64,6 +112,21 @@ vi.stubGlobal("navigator", {
 // window.alert をモック
 vi.stubGlobal("alert", vi.fn());
 
+vi.mock("@/src/lib/FelicaService", () => {
+  return {
+    FelicaService: vi.fn().mockImplementation((usbDevice, isDebug) => {
+      mockFelicaService.s300 = usbDevice;
+      // モックインスタンスを返す
+      return mockFelicaService;
+    }),
+  };
+});
+
+// sleep をモックして待機時間を短縮（本来は 1000ms）
+vi.spyOn(await import("../../src/lib/utils"), "sleep").mockResolvedValue(
+  undefined,
+);
+
 beforeEach(async () => {
   vi.clearAllMocks();
 });
@@ -72,7 +135,7 @@ describe("connect", () => {
   // let cardReader: WebUsbCardReader | undefined;
 
   test("ライブラリ動作対象機器がペアリング済み(1356,3528)", async () => {
-    (navigator.usb.getDevices as Mock).mockResolvedValue([
+    (navigator.usb.getDevices as Mock).mockResolvedValueOnce([
       new MockUSBDevice(1357, 3529),
       new MockUSBDevice(1356, 3528),
     ]);
@@ -84,7 +147,7 @@ describe("connect", () => {
   });
 
   test("ライブラリ動作対象機器がペアリング済み(1356,3529)", async () => {
-    (navigator.usb.getDevices as Mock).mockResolvedValue([
+    (navigator.usb.getDevices as Mock).mockResolvedValueOnce([
       new MockUSBDevice(1357, 3528),
       new MockUSBDevice(1356, 3529),
     ]);
@@ -96,11 +159,11 @@ describe("connect", () => {
   });
 
   test("ライブラリ動作対象機器でペアリング済み機器無し、リクエスト時に機器あり", async () => {
-    (navigator.usb.getDevices as Mock).mockResolvedValue([
+    (navigator.usb.getDevices as Mock).mockResolvedValueOnce([
       new MockUSBDevice(1357, 3528),
       new MockUSBDevice(1356, 3530),
     ]);
-    (navigator.usb.requestDevice as Mock).mockResolvedValue(
+    (navigator.usb.requestDevice as Mock).mockResolvedValueOnce(
       new MockUSBDevice(),
     );
 
@@ -117,8 +180,8 @@ describe("connect", () => {
   });
 
   test("ライブラリ動作対象機器でペアリング済み機器無し、リクエスト時に機器無し(DomException)", async () => {
-    (navigator.usb.getDevices as Mock).mockResolvedValue([]);
-    (navigator.usb.requestDevice as Mock).mockImplementation(async () => {
+    (navigator.usb.getDevices as Mock).mockResolvedValueOnce([]);
+    (navigator.usb.requestDevice as Mock).mockImplementationOnce(async () => {
       throw new DOMException("dom exception");
     });
 
@@ -133,11 +196,13 @@ describe("connect", () => {
   });
 
   test("ライブラリ動作対象機器でペアリング済み機器無し、リクエスト時に機器無し(その他Exception)", async () => {
-    (navigator.usb.getDevices as Mock).mockResolvedValue([]);
-    (navigator.usb.requestDevice as Mock).mockImplementation(async () => {
+    (navigator.usb.getDevices as Mock).mockResolvedValueOnce([]);
+    (navigator.usb.requestDevice as Mock).mockImplementationOnce(async () => {
       throw new Error("some error");
     });
-    expect(() => WebUsbCardReader.connect()).rejects.toThrow("some error");
+    await expect(() => WebUsbCardReader.connect()).rejects.toThrow(
+      "some error",
+    );
     expect(navigator.usb.requestDevice as Mock).toHaveBeenCalledWith({
       filters: [
         { vendorId: 1356, productId: 3528 }, // SONY PaSoRi RC-S300/S
@@ -147,346 +212,280 @@ describe("connect", () => {
   });
 });
 
-// describe("WebUsbCardReader", () => {
-//   let cardReader: WebUsbCardReader | undefined;
+describe("polling", () => {
+  let reader: WebUsbCardReader;
+  beforeEach(async () => {
+    (navigator.usb.getDevices as Mock).mockResolvedValue([new MockUSBDevice()]);
+    const conResult = await WebUsbCardReader.connect();
+    if (!conResult) throw Error("WebUsbCardReaderの取得に失敗");
+    reader = conResult;
+  });
 
-//   beforeEach(async () => {
-//     vi.clearAllMocks();
-//     cardReader = await WebUsbCardReader.connect();
-//   });
+  test("１回で成功", async () => {
+    const response = await reader.polling();
 
-//   afterEach(async () => {
-//     if (cardReader) {
-//       await cardReader.readWithoutEncryption([]);
-//     }
-//   });
+    expect(response).toEqual({ idm: "fakeIdm", systemCode: "0ABC" });
+    expect(mockFelicaService.s300.opened).toBe(false); // closeされていること
+    expect(mockFelicaService.openDevice).toHaveBeenCalledOnce();
+    expect(mockFelicaService.closeDevice).toHaveBeenCalledOnce();
+  });
 
-//   it("should connect to a USB device", async () => {
-//     expect(cardReader).toBeDefined();
-//   });
+  test("２回で成功", async () => {
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
 
-//   it("should return undefined if no device is found", async () => {
-//     vi.spyOn(navigator.usb, "requestDevice").mockRejectedValue(
-//       new DOMException(),
-//     );
-//     const result = await WebUsbCardReader.connect();
-//     expect(result).toBeUndefined();
-//   });
+    const response = await reader.polling();
 
-//   it("should throw an error when trying to read without encryption with invalid params", async () => {
-//     if (!cardReader) return;
+    expect(response).toEqual({ idm: "fakeIdm", systemCode: "0ABC" });
+    expect(mockFelicaService.s300.opened).toBe(false); // closeされていること
+    expect(mockFelicaService.openDevice).toHaveBeenCalledTimes(2);
+    expect(mockFelicaService.closeDevice).toHaveBeenCalledTimes(2);
+  });
 
-//     await expect(cardReader.readWithoutEncryption([])).rejects.toThrow(
-//       "paramsが不正です。対象のサービスは1〜16個の範囲で指定してください",
-//     );
-//   });
+  test("２回失敗し、リトライ上限を超過", async () => {
+    // polling が最初の試行で有効な応答を返す場合
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
 
-//   it("should poll a device and return IDm & System Code", async () => {
-//     if (!cardReader) return;
+    const response = await reader.polling(2);
 
-//     // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//     vi.spyOn(cardReader as any, "felicaPolling").mockResolvedValue({
-//       idm: "0102030405060708",
-//       systemCode: "1234",
-//     });
+    expect(response).not.toBeDefined();
+    expect(mockFelicaService.s300.opened).toBe(false); // closeされていること
+    expect(mockFelicaService.openDevice).toHaveBeenCalledTimes(2);
+    expect(mockFelicaService.closeDevice).toHaveBeenCalledTimes(2);
+  });
 
-//     const result = await cardReader.polling();
-//     expect(result).toEqual({
-//       idm: "0102030405060708",
-//       systemCode: "1234",
-//     });
-//   });
+  test("polling時に例外発生", async () => {
+    // polling が最初の試行で有効な応答を返す場合
+    mockFelicaService.polling.mockRejectedValueOnce(
+      new Error("some error occured"),
+    );
 
-//   it("should return undefined when polling fails", async () => {
-//     if (!cardReader) return;
+    await expect(reader.polling()).rejects.toThrow("some error occured");
 
-//     // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//     vi.spyOn(cardReader as any, "felicaPolling").mockResolvedValue(undefined);
-//     const result = await cardReader.polling();
-//     expect(result).toBeUndefined();
-//   });
+    expect(mockFelicaService.s300.opened).toBe(false); // closeされていること
+    expect(mockFelicaService.openDevice).toHaveBeenCalledTimes(1);
+    expect(mockFelicaService.closeDevice).toHaveBeenCalledTimes(1);
+  });
+});
 
-//   it("should read without encryption", async () => {
-//     if (!cardReader) return;
+describe("requestService", () => {
+  let reader: WebUsbCardReader;
+  beforeEach(async () => {
+    (navigator.usb.getDevices as Mock).mockResolvedValue([new MockUSBDevice()]);
+    const conResult = await WebUsbCardReader.connect();
+    if (!conResult) throw Error("WebUsbCardReaderの取得に失敗");
+    reader = conResult;
+  });
 
-//     const params: ReadServiceParam[] = [
-//       {
-//         serviceCode: "1234",
-//         blockListParam: {
-//           accessMode: "normal",
-//           blockNoStart: 0,
-//           blockNoEnd: 1,
-//         },
-//       },
-//     ];
+  test("成功", async () => {
+    const nodeCodeList = [1, 2, 3];
 
-//     vi.spyOn(
-//       // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//       cardReader as any,
-//       "felicaReadWithoutEncryption",
-//     ).mockResolvedValue({
-//       idm: "0102030405060708",
-//       statusFlag1: "00",
-//       statusFlag2: "00",
-//       blockSize: "10",
-//       blockData: "abcdef",
-//     });
+    const result = await reader.requestService(nodeCodeList);
 
-//     const result = await cardReader.readWithoutEncryption(params);
-//     expect(result).toEqual({
-//       idm: "0102030405060708",
-//       statusFlag1: "00",
-//       statusFlag2: "00",
-//       blockSize: "10",
-//       blockData: "abcdef",
-//     });
-//   });
+    expect(mockFelicaService.requestService).toHaveBeenCalledWith(
+      "fakeIdm",
+      nodeCodeList,
+    );
+    expect(result).toEqual({
+      idm: "fakeIdm",
+      nodeCount: "nodeCount",
+      nodeKeyVerList: "nodeKeyVerList",
+    });
+    expect(mockFelicaService.s300.opened).toBe(false); // closeされていること
+    expect(mockFelicaService.openDevice).toHaveBeenCalledTimes(2);
+    expect(mockFelicaService.closeDevice).toHaveBeenCalledTimes(2);
+  });
 
-//   it("should return undefined when readWithoutEncryption fails", async () => {
-//     if (!cardReader) return;
+  test("polling時にundefinedが返される", async () => {
+    //  １０回失敗する
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
+    const nodeCodeList = [1, 2, 3];
 
-//     vi.spyOn(
-//       // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//       cardReader as any,
-//       "felicaReadWithoutEncryption",
-//     ).mockResolvedValue(undefined);
-//     const result = await cardReader.readWithoutEncryption([]);
-//     expect(result).toBeUndefined();
-//   });
+    const result = await reader.requestService(nodeCodeList);
 
-//   it("should throw an error when constructing a block list with invalid block count", () => {
-//     if (!cardReader) return;
+    expect(result).not.toBeDefined();
+    expect(mockFelicaService.requestService).not.toHaveBeenCalled();
+    expect(mockFelicaService.s300.opened).toBe(false); // closeされていること
+    expect(mockFelicaService.openDevice).toHaveBeenCalledTimes(10);
+    expect(mockFelicaService.closeDevice).toHaveBeenCalledTimes(10);
+  });
 
-//     const param: BlockListParam = {
-//       accessMode: "normal",
-//       blockNoStart: 0,
-//       blockNoEnd: 0x10000, // 超過した値
-//     };
+  test("requestService時にundefinedが返される", async () => {
+    const nodeCodeList = [1, 2, 3];
+    mockFelicaService.requestService.mockResolvedValueOnce(undefined);
 
-//     expect(() =>
-//       // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//       (cardReader as any).constructBlkList(param, 0),
-//     ).toThrow("blockCountが不正です");
-//   });
+    const result = await reader.requestService(nodeCodeList);
 
-//   it("should correctly construct a block list", () => {
-//     if (!cardReader) return;
+    expect(mockFelicaService.requestService).toHaveBeenCalledWith(
+      "fakeIdm",
+      nodeCodeList,
+    );
+    expect(result).not.toBeDefined();
+    expect(mockFelicaService.s300.opened).toBe(false); // closeされていること
+    expect(mockFelicaService.openDevice).toHaveBeenCalledTimes(2);
+    expect(mockFelicaService.closeDevice).toHaveBeenCalledTimes(2);
+  });
 
-//     const param: BlockListParam = {
-//       accessMode: "normal",
-//       blockNoStart: 0,
-//       blockNoEnd: 1,
-//     };
+  test("requestService時に例外発生", async () => {
+    const nodeCodeList = [1, 2, 3];
+    mockFelicaService.requestService.mockRejectedValueOnce(
+      new Error("some error occured in requestService"),
+    );
 
-//     const result =
-//       // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//       (cardReader as any).constructBlkList(param, 2);
-//     expect(result).toEqual([130, 0, 130, 1]);
-//   });
+    await expect(reader.requestService(nodeCodeList)).rejects.toThrow(
+      "some error occured in requestService",
+    );
 
-//   it("should correctly handle requestService", async () => {
-//     if (!cardReader) return;
+    expect(mockFelicaService.requestService).toHaveBeenCalledWith(
+      "fakeIdm",
+      nodeCodeList,
+    );
+    expect(mockFelicaService.s300.opened).toBe(false); // closeされていること
+    expect(mockFelicaService.openDevice).toHaveBeenCalledTimes(2);
+    expect(mockFelicaService.closeDevice).toHaveBeenCalledTimes(2);
+  });
+});
 
-//     vi.spyOn(
-//       // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//       cardReader as any,
-//       "felicaRequestService",
-//     ).mockResolvedValue({
-//       idm: "0102030405060708",
-//       nodeCount: "01",
-//       nodeKeyVerList: "ABCD",
-//     });
+describe("readWithoutEncryption", () => {
+  let reader: WebUsbCardReader;
+  beforeEach(async () => {
+    (navigator.usb.getDevices as Mock).mockResolvedValue([new MockUSBDevice()]);
+    const conResult = await WebUsbCardReader.connect();
+    if (!conResult) throw Error("WebUsbCardReaderの取得に失敗");
+    reader = conResult;
+  });
 
-//     const result = await cardReader.requestService([0x1234, 0x5678]);
-//     expect(result).toEqual({
-//       idm: "0102030405060708",
-//       nodeCount: "01",
-//       nodeKeyVerList: "ABCD",
-//     });
-//   });
+  test("成功", async () => {
+    const params: ReadServiceParam[] = [
+      {
+        blockListParam: {
+          accessMode: "normal",
+          blockNoStart: 1,
+          blockNoEnd: 2,
+        },
+        serviceCode: "0ABC",
+      },
+    ];
 
-//   it("should throw an error if requestService fails", async () => {
-//     if (!cardReader) return;
+    mockFelicaService.readWithoutEncryption.mockResolvedValueOnce({
+      idm: "fakeIdm",
+      blockData: "aa",
+      blockSize: "2",
+      statusFlag1: "flg1",
+      statusFlag2: "flg2",
+    });
 
-//     vi.spyOn(
-//       // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//       cardReader as any,
-//       "felicaRequestService",
-//     ).mockRejectedValue(new Error("Test Error"));
-//     await expect(cardReader.requestService([0x1234])).rejects.toThrow(
-//       "Test Error",
-//     );
-//   });
+    const result = await reader.readWithoutEncryption(params);
 
-//   // 追加テストケース（既存のdescribe("WebUsbCardReader", () => { ... }) 内に追加）
+    expect(mockFelicaService.readWithoutEncryption).toHaveBeenCalledWith(
+      "fakeIdm",
+      params,
+    );
+    expect(result).toEqual({
+      idm: "fakeIdm",
+      blockData: "aa",
+      blockSize: "2",
+      statusFlag1: "flg1",
+      statusFlag2: "flg2",
+    });
+    expect(mockFelicaService.s300.opened).toBe(false); // closeされていること
+    expect(mockFelicaService.openDevice).toHaveBeenCalledTimes(2);
+    expect(mockFelicaService.closeDevice).toHaveBeenCalledTimes(2);
+  });
 
-//   // 1. getDevicesで既にペアリング済みデバイスが存在する場合の分岐
-//   it("should select an already paired device from getDevices when matching", async () => {
-//     // モックデバイスを作成（フィルタにマッチする vendorId / productId）
-//     const matchingDevice = new MockUSBDevice();
-//     // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//     (matchingDevice as any).vendorId = 1356;
-//     // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//     (matchingDevice as any).productId = 3528;
-//     vi.spyOn(navigator.usb, "getDevices").mockResolvedValue([matchingDevice]);
-//     // requestDeviceは呼ばれないはず
-//     const requestSpy = vi.spyOn(navigator.usb, "requestDevice");
-//     const reader = await WebUsbCardReader.connect();
-//     expect(reader).toBeDefined();
-//     expect(requestSpy).not.toHaveBeenCalled();
-//   });
+  test("polling時にundefinedが返される", async () => {
+    //  １０回失敗する
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
+    mockFelicaService.polling.mockResolvedValueOnce(undefined);
 
-//   // 2. getEndPoint内の分岐：複数の "in" エンドポイントがある場合、最後のものが返る
-//   it("should return the last matching 'in' endpoint when multiple exist", () => {
-//     if (!cardReader) return;
-//     // USBデバイスの設定を上書き（2つの"in"エンドポイントを持つように変更）
-//     cardReader.usbDevice.configuration.interfaces[
-//       cardReader.usbDevice.configuration.configurationValue
-//     ] = {
-//       alternate: {
-//         endpoints: [
-//           { direction: "in", endpointNumber: 5, packetSize: 32 },
-//           { direction: "in", endpointNumber: 6, packetSize: 64 },
-//         ],
-//       },
-//       interfaceNumber: 1,
-//     };
-//     cardReader.usbDevice.configuration.configurationValue = 1;
-//     const config = (cardReader as any).getUsbConfigration();
-//     expect(config.endPointInNum).toBe(6);
-//   });
+    const params: ReadServiceParam[] = [
+      {
+        blockListParam: {
+          accessMode: "normal",
+          blockNoStart: 1,
+          blockNoEnd: 2,
+        },
+        serviceCode: "0ABC",
+      },
+    ];
 
-//   // 3. getUsbConfigration: 出力USBエンドポイントが存在しない場合のエラー
-//   it("should throw an error if out endpoint is missing in configuration", () => {
-//     if (!cardReader) return;
-//     // 設定内から "out" エンドポイントを削除
-//     cardReader.usbDevice.configuration.interfaces[
-//       cardReader.usbDevice.configuration.configurationValue
-//     ] = {
-//       alternate: {
-//         endpoints: [{ direction: "in", endpointNumber: 10, packetSize: 64 }],
-//       },
-//       interfaceNumber: 2,
-//     };
-//     expect(() =>
-//       // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//       (cardReader as any).getUsbConfigration(),
-//     ).toThrow("出力USBエンドポイントが取得できませんでした");
-//   });
+    const result = await reader.readWithoutEncryption(params);
 
-//   // 4. openDevice 内のUSB初期化シーケンスが正しく実行されるか
-//   it("should execute the proper openDevice sequence", async () => {
-//     if (!cardReader) return;
-//     const selectConfigSpy = vi.spyOn(
-//       // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//       (cardReader as any).usbDevice,
-//       "selectConfiguration",
-//     );
-//     const claimInterfaceSpy = vi.spyOn(
-//       // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//       (cardReader as any).usbDevice,
-//       "claimInterface",
-//     );
-//     const sendUsbSpy = vi
-//       // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//       .spyOn(cardReader as any, "sendUsb")
-//       .mockResolvedValue(undefined);
-//     const recvUsbSpy = vi
-//       // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//       .spyOn(cardReader as any, "recvUsb")
-//       .mockResolvedValue({ data: new DataView(new ArrayBuffer(64)) });
-//     const sleepSpy = vi
-//       // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//       .spyOn(cardReader as any, "sleep")
-//       .mockResolvedValue(undefined);
+    expect(result).not.toBeDefined();
+    expect(mockFelicaService.readWithoutEncryption).not.toHaveBeenCalled();
+    expect(mockFelicaService.s300.opened).toBe(false); // closeされていること
+    expect(mockFelicaService.openDevice).toHaveBeenCalledTimes(10);
+    expect(mockFelicaService.closeDevice).toHaveBeenCalledTimes(10);
+  });
 
-//     // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//     await (cardReader as any).openDevice();
-//     // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//     const config = (cardReader as any).getUsbConfigration();
-//     expect(selectConfigSpy).toHaveBeenCalledWith(config.confValue);
-//     expect(claimInterfaceSpy).toHaveBeenCalledWith(config.interfaceNum);
-//     // openDevice内ではsendUsb/recvUsbがそれぞれ5回ずつ呼ばれる（各コマンド毎に）
-//     expect(sendUsbSpy).toHaveBeenCalledTimes(5);
-//     expect(recvUsbSpy).toHaveBeenCalledTimes(5);
-//     expect(sleepSpy).toHaveBeenCalledTimes(3);
-//   });
+  test("readWithoutEncryption時にundefinedが返される", async () => {
+    const params: ReadServiceParam[] = [
+      {
+        blockListParam: {
+          accessMode: "normal",
+          blockNoStart: 1,
+          blockNoEnd: 2,
+        },
+        serviceCode: "0ABC",
+      },
+    ];
+    mockFelicaService.readWithoutEncryption.mockResolvedValueOnce(undefined);
 
-//   // 5. closeDevice 内のUSBクローズシーケンスが正しく実行されるか
-//   it("should execute the proper closeDevice sequence", async () => {
-//     if (!cardReader) return;
-//     const sendUsbSpy = vi
-//       // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//       .spyOn(cardReader as any, "sendUsb")
-//       .mockResolvedValue(undefined);
-//     const recvUsbSpy = vi
-//       // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//       .spyOn(cardReader as any, "recvUsb")
-//       .mockResolvedValue({ data: new DataView(new ArrayBuffer(64)) });
-//     const releaseInterfaceSpy = vi.spyOn(
-//       cardReader.usbDevice,
-//       "releaseInterface",
-//     );
-//     const closeSpy = vi.spyOn(cardReader.usbDevice, "close");
+    const result = await reader.readWithoutEncryption(params);
 
-//     // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//     await (cardReader as any).closeDevice();
-//     // closeDevice内でturnOffとendTransparentが送信されるはず
-//     expect(sendUsbSpy).toHaveBeenNthCalledWith(
-//       1,
-//       cardReader.s300Commands.turnOff,
-//       "Turn Off RF",
-//     );
-//     expect(sendUsbSpy).toHaveBeenNthCalledWith(
-//       2,
-//       cardReader.s300Commands.endTransparent,
-//       "End Transeparent Session",
-//     );
+    expect(mockFelicaService.readWithoutEncryption).toHaveBeenCalledWith(
+      "fakeIdm",
+      params,
+    );
+    expect(result).not.toBeDefined();
+    expect(mockFelicaService.s300.opened).toBe(false); // closeされていること
+    expect(mockFelicaService.openDevice).toHaveBeenCalledTimes(2);
+    expect(mockFelicaService.closeDevice).toHaveBeenCalledTimes(2);
+  });
 
-//     const config = (cardReader as any).getUsbConfigration();
-//     expect(releaseInterfaceSpy).toHaveBeenCalledWith(config.interfaceNum);
-//     expect(closeSpy).toHaveBeenCalled();
-//   });
+  test("readWithoutEncryption時に例外が発生", async () => {
+    const params: ReadServiceParam[] = [
+      {
+        blockListParam: {
+          accessMode: "normal",
+          blockNoStart: 1,
+          blockNoEnd: 2,
+        },
+        serviceCode: "0ABC",
+      },
+    ];
 
-//   // 6. sleep: 指定ミリ秒後にPromiseが解決するか（fake timers を利用）
-//   it("should sleep for the specified duration", async () => {
-//     if (!cardReader) return;
-//     vi.useFakeTimers();
-//     // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//     const sleepPromise = (cardReader as any).sleep(100);
-//     let resolved = false;
-//     sleepPromise.then(() => (resolved = true));
-//     vi.advanceTimersByTime(100);
-//     await sleepPromise;
-//     expect(resolved).toBe(true);
-//     vi.useRealTimers();
-//   });
+    mockFelicaService.readWithoutEncryption.mockRejectedValueOnce(
+      new Error("Error occured in readWithoutEncryption"),
+    );
 
-//   // 7. arrayToHex: Uint8Array を16進数表記へ変換する
-//   it("should convert Uint8Array to hex string correctly", () => {
-//     if (!cardReader) return;
-//     const input = new Uint8Array([0x01, 0x0a, 0xff]);
-//     // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//     const result = (cardReader as any).arrayToHex(input);
-//     expect(result).toBe("01 0A FF ");
-//     // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//     const trimmed = (cardReader as any).arrayToHex(input, true);
-//     expect(trimmed).toBe("010AFF");
-//   });
+    await expect(reader.readWithoutEncryption(params)).rejects.toThrow(
+      "Error occured in readWithoutEncryption",
+    );
 
-//   // 8. binArrayToHex: DataView を16進数表記へ変換する
-//   it("should convert DataView to hex string correctly using binArrayToHex", () => {
-//     if (!cardReader) return;
-//     const buffer = new ArrayBuffer(3);
-//     const view = new DataView(buffer);
-//     view.setUint8(0, 0x01);
-//     view.setUint8(1, 0x0a);
-//     view.setUint8(2, 0xff);
-//     // biome-ignore lint/suspicious/noExplicitAny: testing private method
-//     const result = (cardReader as any).binArrayToHex(view);
-//     expect(result).toBe("01 0A FF ");
-//   });
-
-//   // 9. （9つ目の箇所は8つ目と同一の関数）
-//   // ※binArrayToHexのテストが既に8でカバーされるため、ここでは追加テストは省略
-// });
+    expect(mockFelicaService.readWithoutEncryption).toHaveBeenCalledWith(
+      "fakeIdm",
+      params,
+    );
+    expect(mockFelicaService.s300.opened).toBe(false); // closeされていること
+    expect(mockFelicaService.openDevice).toHaveBeenCalledTimes(2);
+    expect(mockFelicaService.closeDevice).toHaveBeenCalledTimes(2);
+  });
+});

@@ -11,8 +11,9 @@ import {
   restorePluginConfig,
   storePluginConfig,
 } from "@ogrtk/shared/kintone-utils";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { ErrorBoundary } from "react-error-boundary";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Mock } from "vitest";
 
@@ -564,13 +565,14 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
-    // いったん画面表示まで待つ
-    await screen.findByLabelText("IDm設定用項目1");
+    await act(async () => {
+      render(<App PLUGIN_ID={PLUGIN_ID} />);
+    });
+
+    // action: ユーザー操作も必要に応じて act() でラップするか、waitFor で更新を待つ
     await userEvent.type(await screen.findByLabelText("追加絞込条件"), "追記");
     await userEvent.type(await getTableCell("更新値", 1, 2), "追記");
     await userEvent.click(screen.getByRole("button", { name: "設定を保存" }));
-
     /* assert */
     expect(
       await screen.findByText("JSON形式の文字列としてください。"),
@@ -617,6 +619,15 @@ describe("Appコンポーネント", () => {
       useCase: {
         types: ["record", "listUpdate"],
         record: { targetSpacer: "space1" },
+        listUpdate: {
+          targetViewName: "更新用一覧code",
+          updateValues: [
+            { field: "updateField", value: `{"value":"updateFieldValue"}` },
+          ],
+          additionalQuery: "update addtional query",
+          confirmBefore: true,
+          notifyAfter: true,
+        },
       },
     };
     (restorePluginConfig as Mock).mockReturnValue({
@@ -648,6 +659,24 @@ describe("Appコンポーネント", () => {
       useCase: {
         types: ["record", "listUpdate"],
         record: { targetSpacer: "space1" },
+        listRegist: {
+          confirmBefore: false,
+          notifyAfter: false,
+          noDuplicate: false,
+          targetViewName: "",
+          useAdditionalValues: false,
+          additionalValues: [],
+          duplicateCheckAdditionalQuery: "",
+        },
+        listUpdate: {
+          targetViewName: "更新用一覧code",
+          updateValues: [
+            { field: "updateField", value: `{"value":"updateFieldValue"}` },
+          ],
+          additionalQuery: "update addtional query",
+          confirmBefore: true,
+          notifyAfter: true,
+        },
       },
     };
     (restorePluginConfig as Mock).mockReturnValue({
@@ -677,7 +706,8 @@ describe("Appコンポーネント", () => {
         idm: { fieldCd1: "idmTextField1", fieldCd2: "idmTextField2" },
       },
       useCase: {
-        types: ["record", "listUpdate"],
+        types: ["record"],
+        record: { targetSpacer: "space1" },
       },
     };
     (restorePluginConfig as Mock).mockReturnValue({
@@ -696,4 +726,74 @@ describe("Appコンポーネント", () => {
       await screen.findByLabelText("カードリーダー実行用ボタンの配置スペース"),
     ).toHaveTextContent("スペース2");
   });
+
+  test("読み込んだconfigにスキーマ上のエラーあり", async () => {
+    /* arrange */
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: false,
+      error: {
+        errors: [
+          { path: "useCase.types", message: "1つ以上の要素が必要です" },
+          { path: "readConfig.readType", message: "必須" },
+        ],
+      },
+    });
+
+    /* action */
+    render(<App PLUGIN_ID={PLUGIN_ID} />);
+
+    /* assert */
+    expect(
+      await screen.findByText(
+        "項目：useCase.types エラー：1つ以上の要素が必要です",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText("項目：readConfig.readType エラー：必須"),
+    ).toBeInTheDocument();
+  });
+
+  test("kintoneアプリのIDが取得できない場合、例外発生", async () => {
+    /* arrange */
+    const mockedConfig: PluginConfig = {
+      readConfig: {
+        readType: "idm",
+        idm: { fieldCd1: "idmTextField1", fieldCd2: "idmTextField2" },
+      },
+      useCase: {
+        types: ["record"],
+        record: { targetSpacer: "space1" },
+      },
+    };
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: true,
+      data: mockedConfig,
+    });
+    (kintone.app.getId as Mock).mockReturnValue(undefined);
+
+    /* action & assert*/
+    /* action */
+    await render(
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <App PLUGIN_ID="dummy-plugin-id" />
+      </ErrorBoundary>,
+    );
+
+    expect(screen.getByText("appが取得できません。")).toBeInTheDocument();
+  });
 });
+
+function ErrorFallback({
+  error,
+  resetErrorBoundary,
+}: { error: Error; resetErrorBoundary: () => void }) {
+  return (
+    <div role="alert">
+      <p>エラーが発生しました:</p>
+      <pre>{error.message}</pre>
+      <button type="button" onClick={resetErrorBoundary}>
+        再試行
+      </button>
+    </div>
+  );
+}

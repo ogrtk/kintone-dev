@@ -216,6 +216,9 @@ export type ReadType = z.infer<typeof readTypeSchema>;
  * readTypeによって設定項目を切り替え(discriminatedUnion)
  */
 const readConfigSchema = z.discriminatedUnion("readType", [
+  // z.object({
+  //   readType: z.literal(""),
+  // }),
   z.object({
     readType: z.literal("idm"),
     idm: idmReadConfigSchema,

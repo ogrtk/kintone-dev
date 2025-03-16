@@ -171,7 +171,25 @@ describe("編集画面・追加画面のカスタマイズ処理", () => {
       "カードリーダーボタン設置用の項目がありません:space1",
     );
   });
+
+  test("設定にスキーマ上のエラーがある場合、例外発生", () => {
+    /* arrange */
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: false,
+      error: { errors: [{ path: "item", message: "error occured" }] },
+    });
+
+    /* action & assert */
+    const eventHandler = getHandler(
+      globalThis.kintone.events.on as Mock,
+      "app.record.edit.show",
+    );
+    expect(() => eventHandler({})).toThrow(
+      "プラグインの設定にエラーがあります",
+    );
+  });
 });
+
 describe("index画面のカスタマイズ処理", () => {
   test("設定した一覧ビューにカードリーダーが設置される(regist)", () => {
     /* arrange */
@@ -297,6 +315,23 @@ describe("index画面のカスタマイズ処理", () => {
     const event = { viewName: "登録用一覧" }; // モックの一覧ビューイベント
     expect(() => eventHandler(event)).toThrow(
       "カードリーダー設置用のヘッダスペースが取得できません",
+    );
+  });
+
+  test("設定にスキーマ上のエラーがある場合、例外発生", () => {
+    /* arrange */
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: false,
+      error: { errors: [{ path: "item", message: "error occured" }] },
+    });
+
+    /* action & assert */
+    const eventHandler = getHandler(
+      globalThis.kintone.events.on as Mock,
+      "app.record.index.show",
+    );
+    expect(() => eventHandler({})).toThrow(
+      "プラグインの設定にエラーがあります",
     );
   });
 });

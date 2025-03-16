@@ -31,5 +31,23 @@
 			"quoteStyle": "double",
 			"semicolons": "always"
 		}
-	}
+	},
+	"overrides": [
+		{
+			"include": [
+				"**/*.test.ts",
+				"**/*.test.tsx"
+			],
+			"linter": {
+				"rules": {
+					"complexity": {
+						"useLiteralKeys": "info"
+					},
+					"suspicious": {
+						"noExplicitAny": "warn"
+					}
+				}
+			}
+		}
+	]
 }

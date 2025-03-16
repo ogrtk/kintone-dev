@@ -64,11 +64,16 @@ export function KintoneLikeTable<
     name: name,
   });
 
+  // if (fields.length === 0) {
+  //   append([defaultValue]);
+  // }
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     if (fields.length === 0) {
-      append(defaultValue);
+      append([defaultValue]);
     }
-  }, [append, defaultValue, fields]);
+  }, []);
 
   return (
     <div className="setting">
