@@ -3,6 +3,7 @@ import {
   getCheckBoxGroup,
   getTable,
   getTableCell,
+  suppressNoisyError,
   withinCheckBoxGroup,
 } from "@ogrtk/shared/test-utils";
 import "@testing-library/jest-dom/vitest";
@@ -771,14 +772,16 @@ describe("Appコンポーネント", () => {
     });
     (kintone.app.getId as Mock).mockReturnValue(undefined);
 
-    /* action & assert*/
     /* action */
-    await render(
-      <ErrorBoundary FallbackComponent={ErrorFallback}>
-        <App PLUGIN_ID="dummy-plugin-id" />
-      </ErrorBoundary>,
-    );
+    suppressNoisyError(() => {
+      render(
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <App PLUGIN_ID="dummy-plugin-id" />
+        </ErrorBoundary>,
+      );
+    });
 
+    /* assert*/
     expect(screen.getByText("appが取得できません。")).toBeInTheDocument();
   });
 });

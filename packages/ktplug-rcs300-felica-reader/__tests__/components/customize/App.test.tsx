@@ -3,6 +3,7 @@ import { AppIndex, AppRecord } from "@/src/components/customize/App"; // ※フ�
 import { WebUsbCardReader } from "@/src/lib/WebUsbCardReader";
 import type { PluginConfig } from "@/src/types";
 import { restorePluginConfig } from "@ogrtk/shared/kintone-utils";
+import { suppressNoisyError } from "@ogrtk/shared/test-utils";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ErrorBoundary } from "react-error-boundary";
@@ -611,11 +612,14 @@ describe("AppRecord Component", () => {
     (restorePluginConfig as Mock).mockReturnValue({ success: false });
 
     /* action */
-    render(
-      <ErrorBoundary FallbackComponent={ErrorFallback}>
-        <AppRecord PLUGIN_ID="dummy-plugin" />
-      </ErrorBoundary>,
-    );
+    suppressNoisyError(() => {
+      render(
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <AppRecord PLUGIN_ID="dummy-plugin" />
+        </ErrorBoundary>,
+      );
+    });
+    /* assert */
     expect(
       screen.getByText("プラグインの設定にエラーがあります"),
     ).toBeInTheDocument();
