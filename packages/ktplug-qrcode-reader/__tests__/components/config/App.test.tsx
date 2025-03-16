@@ -10,8 +10,10 @@ import {
   restorePluginConfig,
   storePluginConfig,
 } from "@ogrtk/shared/kintone-utils";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Suspense } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Mock } from "vitest";
 
@@ -96,7 +98,14 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
 
     /* assert */
     expect(await screen.findByLabelText("データ名称")).toHaveValue(
@@ -142,7 +151,14 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
 
     /* assert */
     // 【読取データ設定】 の検証
@@ -220,7 +236,14 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
 
     /* assert */
     // ■一覧での登録用設定 の検証
@@ -261,7 +284,14 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
 
     /* assert */
     // 【読取データ設定】 の検証
@@ -323,7 +353,14 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
 
     /* assert */
     // 【読取データ設定】 の検証
@@ -371,8 +408,15 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
-    await userEvent.type(screen.getByLabelText("データ名称"), "追記");
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
+    await userEvent.type(await screen.findByLabelText("データ名称"), "追記");
     userEvent.click(screen.getByRole("button", { name: "設定を保存" }));
 
     /* assert */
@@ -403,7 +447,14 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
 
     /* assert */
     await waitFor(() => {
@@ -439,10 +490,20 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
-    userEvent.click(
-      withinCheckBoxGroup("用途種別選択").getByLabelText("一覧での登録"),
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
     );
+
+    await waitFor(async () => {
+      const checkBox =
+        withinCheckBoxGroup("用途種別選択").getByLabelText("一覧での登録");
+      await userEvent.click(checkBox);
+    });
 
     /* assert */
     expect(await screen.findByText("■一覧での登録用設定")).toBeInTheDocument();
@@ -460,11 +521,53 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
 
     /* assert */
     expect(
       await screen.findByLabelText("QRコードリーダー配置用スペース"),
     ).toHaveTextContent("スペース1");
+  });
+
+  test("取得したconfigにエラーが含まれる", async () => {
+    /* arrange */
+    const mockedConfig: PluginConfig = {
+      qrCode: { dataName: "保存データ", field: "dataTextField" },
+      useCase: { types: ["record"] },
+    };
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: false,
+      error: {
+        errors: [
+          { path: "item1", message: "エラーメッセージ1" },
+          { path: "item2", message: "エラーメッセージ2" },
+        ],
+      },
+    });
+
+    /* action */
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
+
+    /* assert */
+    expect(
+      await screen.findByText("項目：item1 エラー：エラーメッセージ1"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("項目：item2 エラー：エラーメッセージ2"),
+    ).toBeInTheDocument();
   });
 });

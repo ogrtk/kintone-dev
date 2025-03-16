@@ -8,6 +8,7 @@ import {
   vi,
 } from "vitest";
 import "@testing-library/jest-dom/vitest";
+import { ErrorFallback } from "@/src/ErrorFallback";
 import {
   AppIndex,
   AppRecord,
@@ -15,17 +16,18 @@ import {
 } from "@/src/components/customize/App";
 import { QrReader } from "@/src/components/customize/QrReader";
 import type { PluginConfig } from "@/src/types";
-import { spyUnhandledRejection } from "@ogrtk/shared/test-utils";
+import { suppressNoisyError } from "@ogrtk/shared/test-utils";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useEffect } from "react";
+import { ErrorBoundary } from "react-error-boundary";
 
 // テスト上、CSSを無視するためのmock
 // vi.mock("@ogrtk/shared/styles", () => ({}));
 
 // QRリーダーコンポーネントのmock
 let mockQrReaderDecodedString = "";
-vi.mock("../../../src/components/customize/QrReader", () => ({
+vi.mock("@/src/components/customize/QrReader", () => ({
   QrReader: vi.fn(({ action }: { action: (arg: string) => void }) => (
     <button
       type="button"
@@ -840,134 +842,143 @@ describe("AppIndex > search ", () => {
     );
   });
 
+  test("kintoneのアプリIDが取得できない場合、エラーがスローされる", async () => {
+    /* assert */
+    (globalThis.kintone.app.getId as Mock).mockReturnValue(undefined);
+
+    const mockPluginConfig: PluginConfig = {
+      qrCode: { field: "qrCodeField", dataName: "QRコードの値" },
+      useCase: {
+        types: ["listRegist"],
+      },
+    };
+
+    suppressNoisyError(() => {
+      render(
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <AppIndex config={mockPluginConfig} mode={"regist"} />
+        </ErrorBoundary>,
+      );
+    });
+
+    /* assert */
+    expect(screen.getByText("アプリIDが取得できません")).toBeInTheDocument();
+
+    (globalThis.kintone.app.getId as Mock).mockReset();
+  });
+});
+
+describe("例外ケース", () => {
+  let unhandledRejectionSpy: Mock;
+  let originalHandler: NodeJS.UnhandledRejectionListener;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    unhandledRejectionSpy = vi.fn();
+    originalHandler = process.listeners("unhandledRejection")[0];
+    process.removeAllListeners("unhandledRejection");
+    process.on("unhandledRejection", unhandledRejectionSpy);
+  });
+
+  afterEach(() => {
+    process.removeAllListeners("unhandledRejection");
+    if (originalHandler) {
+      process.on("unhandledRejection", originalHandler);
+    }
+  });
+
   test("想定外の mode が指定された場合、エラーがスローされる", async () => {
     /* arrange */
-    await spyUnhandledRejection(async (spy) => {
-      (QrReader as Mock).mockImplementation(
-        ({ action }: { action: (arg: string) => Promise<void> }) => {
-          useEffect(() => {
-            action("test");
-          }, [action]);
-          return <></>;
-        },
-      );
-      const mockPluginConfig: PluginConfig = {
-        qrCode: { field: "qrCodeField", dataName: "QRコードの値" },
-        useCase: {
-          types: ["listRegist"],
-        },
-      };
+    (QrReader as Mock).mockImplementation(
+      ({ action }: { action: (arg: string) => Promise<void> }) => {
+        useEffect(() => {
+          action("test");
+        }, [action]);
+        return <></>;
+      },
+    );
+    const mockPluginConfig: PluginConfig = {
+      qrCode: { field: "qrCodeField", dataName: "QRコードの値" },
+      useCase: {
+        types: ["listRegist"],
+      },
+    };
 
-      /* action */
-      render(
-        <AppIndex config={mockPluginConfig} mode={"unexpected" as IndexMode} />,
-      );
+    /* action */
+    render(
+      <AppIndex config={mockPluginConfig} mode={"unexpected" as IndexMode} />,
+    );
 
-      /* assert */
-      // 非同期エラーの発生を待つ
-      await waitFor(() => {
-        expect(spy).toHaveBeenCalledWith(
-          new Error("Unexpected mode: unexpected"),
-          Promise.resolve({}),
-        );
-      });
+    /* assert */
+    // 非同期エラーの発生を待つ
+    await waitFor(() => {
+      expect((unhandledRejectionSpy.mock.calls[0][0] as Error).message).toBe(
+        "Unexpected mode: unexpected",
+      );
     });
   });
 
   test("registが指定されたが該当する設定が無い場合、エラーがスローされる", async () => {
     /* arrange */
-    await spyUnhandledRejection(async (spy) => {
-      const mockPluginConfig: PluginConfig = {
-        qrCode: { field: "qrCodeField", dataName: "QRコードの値" },
-        useCase: {
-          types: ["listRegist"],
-        },
-      };
+    const mockPluginConfig: PluginConfig = {
+      qrCode: { field: "qrCodeField", dataName: "QRコードの値" },
+      useCase: {
+        types: ["listRegist"],
+      },
+    };
 
-      /* action */
-      render(<AppIndex config={mockPluginConfig} mode={"regist"} />);
+    /* action */
+    render(<AppIndex config={mockPluginConfig} mode={"regist"} />);
 
-      /* assert */
-      // 非同期エラーの発生を待つ
-      await waitFor(() => {
-        expect(spy).toHaveBeenCalledWith(
-          new Error("登録用の設定がありません"),
-          Promise.resolve({}),
-        );
-      });
+    /* assert */
+    // 非同期エラーの発生を待つ
+    await waitFor(() => {
+      expect((unhandledRejectionSpy.mock.calls[0][0] as Error).message).toBe(
+        "登録用の設定がありません",
+      );
     });
   });
 
   test("updateが指定されたが該当する設定が無い場合、エラーがスローされる", async () => {
     /* arrange */
-    await spyUnhandledRejection(async (spy) => {
-      const mockPluginConfig: PluginConfig = {
-        qrCode: { field: "qrCodeField", dataName: "QRコードの値" },
-        useCase: {
-          types: ["listUpdate"],
-        },
-      };
+    const mockPluginConfig: PluginConfig = {
+      qrCode: { field: "qrCodeField", dataName: "QRコードの値" },
+      useCase: {
+        types: ["listUpdate"],
+      },
+    };
 
-      /* action */
-      render(<AppIndex config={mockPluginConfig} mode={"update"} />);
+    /* action */
+    render(<AppIndex config={mockPluginConfig} mode={"update"} />);
 
-      /* assert */
-      // 非同期エラーの発生を待つ
-      await waitFor(() => {
-        expect(spy).toHaveBeenCalledWith(
-          new Error("更新用の設定がありません"),
-          Promise.resolve({}),
-        );
-      });
+    /* assert */
+    // 非同期エラーの発生を待つ
+    await waitFor(() => {
+      expect((unhandledRejectionSpy.mock.calls[0][0] as Error).message).toBe(
+        "更新用の設定がありません",
+      );
     });
   });
 
   test("searchが指定されたが該当する設定が無い場合、エラーがスローされる", async () => {
     /* arrange */
-    await spyUnhandledRejection(async (spy) => {
-      const mockPluginConfig: PluginConfig = {
-        qrCode: { field: "qrCodeField", dataName: "QRコードの値" },
-        useCase: {
-          types: ["listSearch"],
-        },
-      };
+    const mockPluginConfig: PluginConfig = {
+      qrCode: { field: "qrCodeField", dataName: "QRコードの値" },
+      useCase: {
+        types: ["listSearch"],
+      },
+    };
 
-      /* action */
-      render(<AppIndex config={mockPluginConfig} mode={"search"} />);
+    /* action */
+    render(<AppIndex config={mockPluginConfig} mode={"search"} />);
 
-      /* assert */
-      // 非同期エラーの発生を待つ
-      await waitFor(() => {
-        expect(spy).toHaveBeenCalledWith(
-          new Error("検索用の設定がありません"),
-          Promise.resolve({}),
-        );
-      });
-    });
-  });
-
-  test("kintoneのアプリIDが取得できない場合、エラーがスローされる", async () => {
-    /* arrange */
-    await spyUnhandledRejection(async (spy) => {
-      /* assert */
-      (globalThis.kintone.app.getId as Mock).mockReturnValue(undefined);
-
-      const mockPluginConfig: PluginConfig = {
-        qrCode: { field: "qrCodeField", dataName: "QRコードの値" },
-        useCase: {
-          types: ["listRegist"],
-        },
-      };
-
-      /* action */
-      render(<AppIndex config={mockPluginConfig} mode={"regist"} />);
-      // 非同期エラーの発生を待つ
-      await waitFor(() => {
-        expect(spy).toHaveBeenCalledWith(
-          new Error("アプリIDが取得できません"),
-          Promise.resolve({}),
-        );
-      });
+    /* assert */
+    // 非同期エラーの発生を待つ
+    await waitFor(() => {
+      expect((unhandledRejectionSpy.mock.calls[0][0] as Error).message).toBe(
+        "検索用の設定がありません",
+      );
     });
   });
 });

@@ -320,31 +320,4 @@ describe("QRコードリーダー", () => {
       expect(mockedAction).toHaveBeenCalledWith("mock-qr-code-text-2"),
     );
   });
-
-  // test("clearReader で scannerRef.current が undefined の場合に早期 return する", async () => {
-  //   const actionMock = vi.fn();
-  //   const { container } = render(
-  //     <QrReader
-  //       size={{ width: "200px", height: "200px" }}
-  //       action={actionMock}
-  //       autoStart={false}
-  //     />,
-  //   );
-
-  //   // QrReader のインスタンスを取得
-  //   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  //   const instance = container.firstChild as any;
-  //   console.log("🚀 ~ test ~ instance:", instance);
-
-  //   // scannerRef.current を undefined にする
-  //   instance.scannerRef = { current: null };
-
-  //   // clearReader を直接実行
-  //   await act(async () => {
-  //     await instance.clearReader();
-  //   });
-
-  //   // 何も処理されずに return されるので、副作用がないことを確認
-  //   expect(screen.getByRole("application")).toHaveStyle("display: none");
-  // });
 });

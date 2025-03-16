@@ -55,10 +55,9 @@ export function AppIndex({
   config,
   mode,
 }: { config: PluginConfig; mode: IndexMode }) {
+  const app = kintone.app.getId();
+  if (!app) throw new Error("アプリIDが取得できません");
   const action: QrReadedAction = async (decodedText) => {
-    const app = kintone.app.getId();
-    if (!app) throw new Error("アプリIDが取得できません");
-
     switch (mode) {
       case "regist":
         await regist(app, decodedText, config);

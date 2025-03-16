@@ -322,6 +322,23 @@ describe("index画面のカスタマイズ処理", () => {
       "QRコードリーダー設置用のヘッダスペースが取得できません",
     );
   });
+
+  test("プラグインの設定を取得できない場合はエラー", () => {
+    /* arrange */
+    (restorePluginConfig as Mock).mockReturnValue({
+      success: false,
+    });
+
+    /* action & assert */
+    const eventHandler = getHandler(
+      globalThis.kintone.events.on as Mock,
+      "app.record.index.show",
+    );
+    const event = { viewName: "検索画面" }; // モックの一覧ビューイベント
+    expect(() => eventHandler(event)).toThrow(
+      "プラグインの設定にエラーがあります",
+    );
+  });
 });
 
 function getHandler(

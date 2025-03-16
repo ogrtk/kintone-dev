@@ -3,9 +3,7 @@ import {
   USECASE_TYPE_SELECTIONS,
   pluginConfigSchema,
 } from "@/src/types";
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  ErrorMessage,
   KintoneLikeBooleanCheckBox,
   KintoneLikeCheckBox,
   KintoneLikeSelect,
@@ -18,9 +16,11 @@ import {
   restorePluginConfig,
   storePluginConfig,
 } from "@ogrtk/shared/kintone-utils";
-import { useEffect, useMemo, useState } from "react";
-import { type SubmitHandler, useForm } from "react-hook-form";
 import "@ogrtk/shared/styles";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { type SubmitHandler, useForm } from "react-hook-form";
 
 /**
  * プラグイン設定画面
@@ -28,85 +28,125 @@ import "@ogrtk/shared/styles";
  * @returns
  */
 export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
-  // kintoneの項目取得ユーティリティ
-  const kintoneFieldsRetriever = useMemo(
-    () => new KintoneFieldsRetriever(),
-    [],
-  );
+  /**
+   * fetch処理
+   * @returns
+   */
+  const fetchData = async () => {
+    // kintoneの項目取得ユーティリティ
+    const kintoneFieldsRetriever = new KintoneFieldsRetriever();
+    // 選択肢の取得
+    // pluginに保存した設定情報を取得
+    const initConfig = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
+    // エラーがある場合、メッセージ表示
+    const initMessages = initConfig.success
+      ? []
+      : initConfig.error.errors.map(
+          (error) => ` 項目：${error.path} エラー：${error.message}`,
+        );
+    // スペース項目取得
+    const initSpaceFields = await kintoneFieldsRetriever.getRecordSpaceFields();
+    // 項目取得
+    const initFields = await kintoneFieldsRetriever.getFields([
+      "SINGLE_LINE_TEXT",
+      "DATE",
+      "DATETIME",
+      "CHECK_BOX",
+      "DROP_DOWN",
+      "MULTI_LINE_TEXT",
+      "MULTI_SELECT",
+      "NUMBER",
+      "RADIO_BUTTON",
+      "RICH_TEXT",
+    ]);
+    // 一覧名取得
+    const initViewNames = await kintoneFieldsRetriever.getViewNames();
+    return {
+      initConfig,
+      initMessages,
+      initFields,
+      initSpaceFields,
+      initViewNames,
+    };
+  };
+
+  /** suspense query */
+  const {
+    initConfig,
+    initMessages,
+    initFields,
+    initSpaceFields,
+    initViewNames,
+  } = useSuspenseQuery({
+    queryKey: ["fetchData"],
+    queryFn: fetchData,
+    retry: false, // これを追加
+  }).data;
 
   // 選択肢の項目用state
-  const [fields, setFields] = useState<SelectOption[]>([]);
-  const [spaceFields, setSpaceFields] = useState<SelectOption[]>([]);
-  const [viewNames, setViewNames] = useState<SelectOption[]>([]);
-  const [messages, setMessages] = useState<string[]>([]);
+  const [fields, _setFields] = useState<SelectOption[]>(initFields);
+  const [spaceFields, _setSpaceFields] =
+    useState<SelectOption[]>(initSpaceFields);
+  const [viewNames, _setViewNames] = useState<SelectOption[]>(initViewNames);
+  const [messages, _setMessages] = useState<string[]>(initMessages);
+
+  // 取得したconfigを元に、初期値を加える
+  const initConfigData = initConfig?.data;
+  const defaultValues: PluginConfig = {
+    qrCode: {
+      dataName: initConfigData?.qrCode?.dataName ?? "",
+      field: initConfigData?.qrCode?.field ?? "",
+    },
+    useCase: {
+      types: initConfigData?.useCase?.types ?? [],
+      listRegist: {
+        targetViewName:
+          initConfigData?.useCase?.listRegist?.targetViewName ?? "",
+        noDuplicate: initConfigData?.useCase?.listRegist?.noDuplicate ?? false,
+        duplicateCheckAdditionalQuery:
+          initConfigData?.useCase?.listRegist?.duplicateCheckAdditionalQuery ??
+          "",
+        useAdditionalValues:
+          initConfigData?.useCase?.listRegist?.useAdditionalValues ?? false,
+        additionalValues:
+          initConfigData?.useCase?.listRegist?.additionalValues ?? [],
+      },
+      listSearch: {
+        targetViewName:
+          initConfigData?.useCase?.listSearch?.targetViewName ?? "",
+        additionalQuery:
+          initConfigData?.useCase?.listSearch?.additionalQuery ?? "",
+      },
+      listUpdate: {
+        targetViewName:
+          initConfigData?.useCase?.listUpdate?.targetViewName ?? "",
+        additionalQuery:
+          initConfigData?.useCase?.listUpdate?.additionalQuery ?? "",
+        updateValues: initConfigData?.useCase?.listUpdate?.updateValues ?? [],
+      },
+      record: {
+        space: initConfigData?.useCase?.record?.space ?? "",
+      },
+    },
+  };
 
   // react-hook-form
   const methods = useForm<PluginConfig>({
-    defaultValues: undefined,
+    defaultValues,
     resolver: zodResolver(pluginConfigSchema, undefined, { raw: false }),
   });
-  const { handleSubmit, watch, reset } = methods;
+  const { handleSubmit, watch } = methods;
 
   // 動的制御用の監視項目
   const useCaseTypes = watch("useCase.types");
-  const listSearchEnabled = useCaseTypes
-    ? useCaseTypes.includes("listSearch")
-    : undefined;
-  const listRegistEnabled = useCaseTypes
-    ? useCaseTypes.includes("listRegist")
-    : undefined;
-  const listUpdateEnabled = useCaseTypes
-    ? useCaseTypes.includes("listUpdate")
-    : undefined;
-  const recordEnabled = useCaseTypes
-    ? useCaseTypes.includes("record")
-    : undefined;
+  const listSearchEnabled = useCaseTypes?.includes("listSearch");
+  const listRegistEnabled = useCaseTypes?.includes("listRegist");
+  const listUpdateEnabled = useCaseTypes?.includes("listUpdate");
+  const recordEnabled = useCaseTypes?.includes("record");
   const useRegistAdditinalValues = watch(
     "useCase.listRegist.useAdditionalValues",
   );
   const noDuplicate = watch("useCase.listRegist.noDuplicate");
-
-  useEffect(() => {
-    // 選択肢の取得
-    const fetchFieldsInfo = async () => {
-      // pluginに保存した設定情報を取得
-      const config = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
-      // エラーがある場合、メッセージ表示
-      if (!config.success) {
-        setMessages(config.error.errors.map((error) => error.message));
-      } else {
-        setMessages([]);
-      }
-      // スペース項目取得
-      const spaceFields = await kintoneFieldsRetriever.getRecordSpaceFields();
-      // 項目取得
-      const fields = await kintoneFieldsRetriever.getFields([
-        "SINGLE_LINE_TEXT",
-        "DATE",
-        "DATETIME",
-        "CHECK_BOX",
-        "DROP_DOWN",
-        "MULTI_LINE_TEXT",
-        "MULTI_SELECT",
-        "NUMBER",
-        "RADIO_BUTTON",
-        "RICH_TEXT",
-      ]);
-      // console.log("🚀 ~ fetchFieldsInfo ~ fields:", fields);
-      // 一覧名取得
-      const viewNames = await kintoneFieldsRetriever.getViewNames();
-
-      setSpaceFields(spaceFields);
-      setFields(fields);
-      setViewNames(viewNames);
-
-      // 動的に候補値を取得したselectについて、表示を正しくするためresetする
-      // （useForm時点ではselectのlabelが存在しないため正しく表示できない）
-      reset(config.data);
-    };
-
-    fetchFieldsInfo();
-  }, [PLUGIN_ID, reset, kintoneFieldsRetriever]);
 
   /**
    * フォーム内容送信処理
