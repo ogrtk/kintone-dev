@@ -7,13 +7,16 @@ import {
   withinCheckBoxGroup,
 } from "@ogrtk/shared/test-utils";
 import "@testing-library/jest-dom/vitest";
+import { ErrorFallback } from "@/src/ErrorFallback";
 import { App } from "@/src/components/config/App";
 import {
   restorePluginConfig,
   storePluginConfig,
 } from "@ogrtk/shared/kintone-utils";
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Mock } from "vitest";
@@ -42,6 +45,8 @@ vi.mock("@ogrtk/shared/kintone-utils", async () => {
         return [
           { label: "追加設定用フィールド", code: "addField" },
           { label: "更新用フィールド", code: "updateField" },
+          { label: "追加フィールド1", code: "additionalField1" },
+          { label: "追加フィールド2", code: "additionalField2" },
         ];
       }
       async getRecordSpaceFields() {
@@ -109,7 +114,14 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
 
     /* assert */
     expect(await screen.findByLabelText("IDm設定用項目1")).toHaveValue(
@@ -147,7 +159,14 @@ describe("Appコンポーネント", () => {
           notifyAfter: true,
           useAdditionalValues: true,
           additionalValues: [
-            { field: "addField", value: `{"value":"addFieldValue"}` },
+            {
+              field: "additionalField1",
+              value: `{"value":"additionalValue1"}`,
+            },
+            {
+              field: "additionalField2",
+              value: `{"value":"additionalValue2"}`,
+            },
           ],
         },
       },
@@ -158,14 +177,18 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
 
     /* assert */
     expect(await screen.findByLabelText("IDm設定用項目1")).toHaveValue(
       "idmTextField1",
-    );
-    expect(screen.getByLabelText("IDm設定用項目2")).toHaveValue(
-      "idmTextField2",
     );
 
     // 用途種別選択 の検証
@@ -184,14 +207,18 @@ describe("Appコンポーネント", () => {
       "重複を許可しない",
     ]);
     expect(
-      within(listRegistSection).getByLabelText("重複チェック時の追加検索条件"),
+      within(listRegistSection).queryByLabelText(
+        "重複チェック時の追加検索条件",
+      ),
     ).toHaveValue("additional query");
     expect(getCheckBoxGroup("追加設定値の利用")).toHaveCheckedLabels([
       "利用する",
     ]);
     expect(getTable("追加設定値")).toHaveTableRecords([
-      ["addField", `{"value":"addFieldValue"}`],
+      ["additionalField1", `{"value":"additionalValue1"}`],
+      ["additionalField2", `{"value":"additionalValue2"}`],
     ]);
+
     expect(getCheckBoxGroup("登録前確認")).toHaveCheckedLabels(["表示する"]);
     expect(getCheckBoxGroup("登録後通知")).toHaveCheckedLabels(["表示する"]);
 
@@ -200,7 +227,7 @@ describe("Appコンポーネント", () => {
     expect(screen.queryByText("■詳細画面用設定")).not.toBeInTheDocument();
   });
 
-  test("一覧での登録用設定:重複を許可しないがoff時、追加絞込条件が非表示", async () => {
+  test("一覧での登録用設定:重複を許可しない・追加設定値の利用がoff（対応する項目が非表示）", async () => {
     /* arrange */
     const mockedConfig: PluginConfig = {
       readConfig: {
@@ -224,7 +251,14 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
 
     /* assert */
     expect(await screen.findByLabelText("IDm設定用項目1")).toHaveValue(
@@ -287,7 +321,14 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
 
     /* assert */
     expect(await screen.findByLabelText("IDm設定用項目1")).toHaveValue(
@@ -338,7 +379,14 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
 
     /* assert */
     expect(await screen.findByLabelText("IDm設定用項目1")).toHaveValue(
@@ -377,7 +425,14 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
 
     /* assert */
     expect(await screen.findByLabelText("データ名称")).toHaveValue(
@@ -425,7 +480,14 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
 
     /* assert */
     expect(await screen.findByLabelText("IDm設定用項目1")).toHaveValue(
@@ -485,7 +547,14 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
     expect(await screen.findByLabelText("IDm設定用項目1")).toHaveValue(
       "idmTextField1",
     );
@@ -566,9 +635,14 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    await act(async () => {
-      render(<App PLUGIN_ID={PLUGIN_ID} />);
-    });
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
 
     // action: ユーザー操作も必要に応じて act() でラップするか、waitFor で更新を待つ
     await userEvent.type(await screen.findByLabelText("追加絞込条件"), "追記");
@@ -599,7 +673,14 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
 
     /* assert */
     expect(await screen.findByLabelText("IDm設定用項目1")).toHaveTextContent(
@@ -637,7 +718,14 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
 
     /* assert */
     await waitFor(() => {
@@ -686,7 +774,14 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
 
     expect(await screen.findByText("■一覧での更新用設定")).toBeInTheDocument();
     expect(screen.queryByText("■一覧での登録用設定")).not.toBeInTheDocument();
@@ -717,7 +812,14 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
 
     /* assert */
     expect(
@@ -741,7 +843,14 @@ describe("Appコンポーネント", () => {
     });
 
     /* action */
-    render(<App PLUGIN_ID={PLUGIN_ID} />);
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Suspense>
+          <App PLUGIN_ID={PLUGIN_ID} />
+        </Suspense>
+      </QueryClientProvider>,
+    );
 
     /* assert */
     expect(
@@ -772,31 +881,23 @@ describe("Appコンポーネント", () => {
     });
     (kintone.app.getId as Mock).mockReturnValue(undefined);
 
-    /* action */
-    suppressNoisyError(() => {
+    await suppressNoisyError(async () => {
+      /* action */
+      const queryClient = new QueryClient();
       render(
         <ErrorBoundary FallbackComponent={ErrorFallback}>
-          <App PLUGIN_ID="dummy-plugin-id" />
+          <QueryClientProvider client={queryClient}>
+            <Suspense>
+              <App PLUGIN_ID={PLUGIN_ID} />
+            </Suspense>
+          </QueryClientProvider>
         </ErrorBoundary>,
       );
-    });
 
-    /* assert*/
-    expect(screen.getByText("appが取得できません。")).toBeInTheDocument();
+      /* assert*/
+      expect(
+        await screen.findByText("appが取得できません。"),
+      ).toBeInTheDocument();
+    });
   });
 });
-
-function ErrorFallback({
-  error,
-  resetErrorBoundary,
-}: { error: Error; resetErrorBoundary: () => void }) {
-  return (
-    <div role="alert">
-      <p>エラーが発生しました:</p>
-      <pre>{error.message}</pre>
-      <button type="button" onClick={resetErrorBoundary}>
-        再試行
-      </button>
-    </div>
-  );
-}

@@ -30,6 +30,8 @@ export function AppRecord({ PLUGIN_ID }: { PLUGIN_ID: string }) {
   }
   const config = result.data;
 
+  const [message, setMessage] = useState("");
+
   /**
    * レコード編集処理
    * @param data 編集値
@@ -37,9 +39,9 @@ export function AppRecord({ PLUGIN_ID }: { PLUGIN_ID: string }) {
    * @param fieldCode2 編集先のフィールドコード2
    */
   const editRecord = (
-    data: string,
     fieldCode1: string,
     fieldCode2?: string,
+    data?: string,
   ) => {
     const record = kintone.app.record.get();
     record.record[fieldCode1].value = data;
@@ -62,54 +64,34 @@ export function AppRecord({ PLUGIN_ID }: { PLUGIN_ID: string }) {
   /**
    * カード読み込み処理
    */
-  const readbtnHandler = () => {
-    // 読取種別に応じた処理を呼び出し
-    const readCard = async () => {
-      const webUsbCardreader = await WebUsbCardReader.connect(
-        import.meta.env.VITE_WEBUSB_DEBUG === "true",
-      );
-      if (!webUsbCardreader) {
-        alert("カードリーダーを接続してください。");
-        return;
-      }
+  const readbtnHandler = async () => {
+    // カードの読み込み
+    const felicaData = await readCard(setMessage, config, 1);
 
+    // 読取種別に応じ、編集処理を実行
+    if (felicaData?.idm) {
       if (config.readConfig.readType === "idm") {
-        const readResult = await webUsbCardreader.polling();
-        if (!readResult) {
-          alert("カード読み込みに失敗しました。(polling)");
-          return;
-        }
         editRecord(
-          readResult.idm,
           config.readConfig.idm.fieldCd1,
           config.readConfig.idm.fieldCd2,
+          felicaData.idm,
         );
       } else {
-        const readed = await readIdmAndMemory(
-          webUsbCardreader,
-          config.readConfig.memory,
-        );
-        if (!readed) {
-          alert("カード読み込みに失敗しました。(readIdmAndMemory)");
-          return;
-        }
         editRecord(
-          readed.memoryData,
           config.readConfig.memory.fieldCd1,
           config.readConfig.memory.fieldCd2,
+          felicaData.memory,
         );
 
         if (config.readConfig.readType === "both") {
           editRecord(
-            readed.idm,
             config.readConfig.idm.fieldCd1,
             config.readConfig.idm.fieldCd2,
+            felicaData.idm,
           );
         }
       }
-    };
-
-    readCard();
+    }
   };
 
   return (
@@ -119,6 +101,7 @@ export function AppRecord({ PLUGIN_ID }: { PLUGIN_ID: string }) {
           カード読取
         </button>
       </div>
+      {message && <p className="message-normal-small">{message}</p>}
     </div>
   );
 }
@@ -154,6 +137,7 @@ export function AppIndex({
   const btnCardReaderClicked = () => {
     const doAction = async () => {
       const app = kintone.app.getId();
+
       if (!app) throw new Error("アプリケーションのIDが取得できません。");
 
       // pluginに保存した設定情報を取得
@@ -237,6 +221,7 @@ async function readIdmAndMemory(
 async function readCard(
   setMessage: (message: string) => void,
   config: PluginConfig,
+  tryLimit: number | "nolimit" = "nolimit",
 ): Promise<FelicaData | undefined> {
   // カードリーダーへ接続
   setMessage("カードリーダーに接続中…");
@@ -254,10 +239,18 @@ async function readCard(
   setMessage("カードを置いてください。");
   let idm: string | undefined = "";
   let memory: string | undefined = "";
-  while (!idm) {
+  let tryCount = 0;
+  while (!idm && (tryLimit === "nolimit" || tryCount < tryLimit)) {
+    tryCount++;
     try {
       // IDm読み取り
       idm = (await webUsbCardreader.polling())?.idm;
+
+      if (!idm && tryCount === tryLimit) {
+        alert("カード読み込みに失敗しました。(polling)");
+        return;
+      }
+
       // memory読取設定の場合、続けて読み取りを行う
       if (
         (config.readConfig.readType === "memory" ||
@@ -268,6 +261,11 @@ async function readCard(
         memory = (
           await readIdmAndMemory(webUsbCardreader, config.readConfig.memory)
         )?.memoryData;
+
+        if (!memory && tryCount === tryLimit) {
+          alert("カード読み込みに失敗しました。(readIdmAndMemory)");
+          return;
+        }
       }
     } catch (e: unknown) {
       setMessage(`エラーが発生しました:\n${(e as Error).message}`);
@@ -306,7 +304,7 @@ async function regist(
     throw new Error("登録処理を行う設定になっていません。処理を中断します。");
   const client = new KintoneRestAPIClient();
 
-  const msg = `(${felicaData.idm ? `IDm:${felicaData.idm} ` : ""}${felicaData.memory ? `memory:${felicaData.memory}` : ""})`;
+  const msg = `(${`IDm: ${felicaData.idm}`}${config.readConfig.readType !== "idm" ? " " : ""}${felicaData.memory ? `memory: ${felicaData.memory}` : ""})`;
 
   // 登録確認
   if (config.useCase.listRegist.confirmBefore) {
@@ -406,7 +404,7 @@ async function update(
     throw new Error("更新処理を行う設定になっていません。処理を中断します。");
 
   const client = new KintoneRestAPIClient();
-  const msg = `(${felicaData.idm ? `IDm:${felicaData.idm} ` : ""}${felicaData.memory ? `memory:${felicaData.memory}` : ""})`;
+  const msg = `(${`IDm: ${felicaData.idm}`}${config.readConfig.readType !== "idm" ? " " : ""}${felicaData.memory ? `memory: ${felicaData.memory}` : ""})`;
 
   // 続行確認
   if (config.useCase.listUpdate.confirmBefore) {

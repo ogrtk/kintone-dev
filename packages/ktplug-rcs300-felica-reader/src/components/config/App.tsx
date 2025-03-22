@@ -20,98 +20,100 @@ import {
   storePluginConfig,
 } from "@ogrtk/shared/kintone-utils";
 import "@ogrtk/shared/styles";
-import { useEffect, useMemo, useState } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { type SubmitHandler, useForm } from "react-hook-form";
 
 export function App({ PLUGIN_ID }: { PLUGIN_ID: string }) {
-  const app = kintone.app.getId();
-  if (!app) throw new Error("appが取得できません。");
-  // kintoneの項目取得ユーティリティ
-  const kintoneFieldsRetriever = useMemo(
-    () => new KintoneFieldsRetriever(),
-    [],
-  );
+  const fetchData = async () => {
+    const app = kintone.app.getId();
+
+    if (!app) throw new Error("appが取得できません。");
+    // kintoneの項目取得ユーティリティ
+    const kintoneFieldsRetriever = new KintoneFieldsRetriever();
+
+    // pluginに保存した設定情報を取得
+    const result = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
+    // エラーがある場合、メッセージ表示
+    const initConfig = result.data;
+    const initMessages = result.success
+      ? []
+      : result.error.errors.map(
+          (error) => ` 項目：${error.path} エラー：${error.message}`,
+        );
+
+    // 選択肢の取得
+    // カード読み込みボタンの設置場所として、アプリのスペース項目を取得
+    // スペース項目取得
+    const initSpaceFields = await kintoneFieldsRetriever.getRecordSpaceFields();
+    // 1行テキスト取得
+    const initFields = await kintoneFieldsRetriever.getFields([
+      "SINGLE_LINE_TEXT",
+      "DATE",
+      "DATETIME",
+      "CHECK_BOX",
+      "DROP_DOWN",
+      "MULTI_LINE_TEXT",
+      "MULTI_SELECT",
+      "NUMBER",
+      "RADIO_BUTTON",
+      "RICH_TEXT",
+    ]);
+    const initSingleTextFields =
+      await kintoneFieldsRetriever.getSingleTextFields();
+    // 一覧名取得
+    const initViewNames = await kintoneFieldsRetriever.getViewNames();
+
+    return {
+      initConfig,
+      initMessages,
+      initFields,
+      initSingleTextFields,
+      initSpaceFields,
+      initViewNames,
+    };
+  };
+
+  /** suspense query */
+  const {
+    initConfig,
+    initMessages,
+    initFields,
+    initSingleTextFields,
+    initSpaceFields,
+    initViewNames,
+  } = useSuspenseQuery({
+    queryKey: ["fetchData"],
+    queryFn: fetchData,
+    retry: false, // TODO: どうするか
+  }).data;
 
   // 選択肢の項目用state
-  const [fields, setFields] = useState<SelectOption[]>([]);
-  const [singleTextFields, setSingleTextFields] = useState<SelectOption[]>([]);
-  const [spaceFields, setSpaceFields] = useState<SelectOption[]>([]);
-  const [viewNames, setViewNames] = useState<SelectOption[]>([]);
-  const [messages, setMessages] = useState<string[]>([]);
+  const [fields, _setFields] = useState<SelectOption[]>(initFields);
+  const [singleTextFields, _setSingleTextFields] =
+    useState<SelectOption[]>(initSingleTextFields);
+  const [spaceFields, _setSpaceFields] =
+    useState<SelectOption[]>(initSpaceFields);
+  const [viewNames, _setViewNames] = useState<SelectOption[]>(initViewNames);
+  const [messages, _setMessages] = useState<string[]>(initMessages);
 
   // react-hook-form
   const methods = useForm<PluginConfig>({
-    defaultValues: {},
+    defaultValues: initConfig,
     resolver: zodResolver(pluginConfigSchema),
   });
-  const { handleSubmit, watch, reset } = methods;
+  const { handleSubmit, watch } = methods;
 
   // 動的制御用の監視項目
   const readType = watch("readConfig.readType");
   const useCaseType = watch("useCase.types");
-  const listRegistEnabled = useCaseType
-    ? useCaseType.includes("listRegist")
-    : undefined;
-  const listUpdateEnabled = useCaseType
-    ? useCaseType.includes("listUpdate")
-    : undefined;
-  const recordEnabled = useCaseType
-    ? useCaseType.includes("record")
-    : undefined;
+  const listRegistEnabled = useCaseType?.includes("listRegist");
+  const listUpdateEnabled = useCaseType?.includes("listUpdate");
+  const recordEnabled = useCaseType?.includes("record");
   const noDuplicate = watch("useCase.listRegist.noDuplicate");
   const useRegistAdditinalValues = watch(
     "useCase.listRegist.useAdditionalValues",
   );
-
-  useEffect(() => {
-    // pluginに保存した設定情報を取得
-    const result = restorePluginConfig(PLUGIN_ID, pluginConfigSchema);
-    // エラーがある場合、メッセージ表示
-    if (!result.success) {
-      setMessages(
-        result.error.errors.map(
-          (error) => ` 項目：${error.path} エラー：${error.message}`,
-        ),
-      );
-    } else {
-      setMessages([]);
-    }
-
-    // 選択肢の取得
-    const fetchFieldsInfo = async () => {
-      // カード読み込みボタンの設置場所として、アプリのスペース項目を取得
-      // スペース項目取得
-      const spaceFields = await kintoneFieldsRetriever.getRecordSpaceFields();
-      // 1行テキスト取得
-      const fields = await kintoneFieldsRetriever.getFields([
-        "SINGLE_LINE_TEXT",
-        "DATE",
-        "DATETIME",
-        "CHECK_BOX",
-        "DROP_DOWN",
-        "MULTI_LINE_TEXT",
-        "MULTI_SELECT",
-        "NUMBER",
-        "RADIO_BUTTON",
-        "RICH_TEXT",
-      ]);
-      const singleTextFields =
-        await kintoneFieldsRetriever.getSingleTextFields();
-      // 一覧名取得
-      const viewNames = await kintoneFieldsRetriever.getViewNames();
-
-      setSpaceFields(spaceFields);
-      setFields(fields);
-      setSingleTextFields(singleTextFields);
-      setViewNames(viewNames);
-
-      // 動的に候補値を取得したselectについて、表示を正しくするためresetする
-      // （useForm時点ではselectのlabelが存在しないため正しく表示できない）
-      reset(result.data);
-    };
-
-    fetchFieldsInfo();
-  }, [reset, PLUGIN_ID, kintoneFieldsRetriever]);
 
   /**
    * フォーム内容送信処理

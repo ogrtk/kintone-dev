@@ -8,8 +8,6 @@ import {
   WebUsbCardReader,
 } from "@/src/lib/WebUsbCardReader";
 import { type Mock, beforeEach, describe, expect, test, vi } from "vitest";
-// RUN_SLOW_TESTS 環境変数がセットされている場合は実行、なければskipする
-const testIfSlow = process.env.RUN_SLOW_TESTS ? test : test.skip;
 
 // Mock 用の USBDevice
 class MockUSBDevice {
