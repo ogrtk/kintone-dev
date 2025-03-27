@@ -1,13 +1,30 @@
-// IUsbConnector.ts
+/** FeliCa操作の結果 */
+export type FelicaOperationResult =
+  | {
+      length: number;
+      responseCode: number;
+      data: number[];
+    }
+  | undefined;
+
+/**
+ * FeliCaリーダーのインターフェイス
+ */
 export interface IFelicaReader {
   open(): Promise<void>;
   close(): Promise<void>;
-  selectConfiguration(configValue: number): Promise<void>;
-  claimInterface(interfaceNumber: number): Promise<void>;
-  releaseInterface(interfaceNumber: number): Promise<void>;
-  transferIn(endpoint: number, length: number): Promise<USBInTransferResult>;
-  transferOut(
-    endpoint: number,
-    data: Uint8Array,
-  ): Promise<USBOutTransferResult>;
+  operateFelica(
+    felicaCommand: number[],
+    description: string,
+  ): Promise<FelicaOperationResult>;
+  get isOpened(): boolean;
+  get vendorId(): number;
+  get productId(): number;
 }
+
+/**
+ * FeliCaリーダーのインターフェイス（コンストラクタ型）
+ */
+export type IFelicaReaderConstructor = {
+  new (device: USBDevice, debugEnabled?: boolean): IFelicaReader;
+};

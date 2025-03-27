@@ -226,6 +226,7 @@ async function readCard(
   // カードリーダーへ接続
   setMessage("カードリーダーに接続中…");
   const webUsbCardreader = await WebUsbCardReader.connect(
+    [],
     import.meta.env.VITE_WEBUSB_DEBUG === "true",
   );
 

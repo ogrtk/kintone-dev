@@ -1,23 +1,49 @@
-import {
-  arrayToHex,
-  binArrayToHex,
-  dataViewToUint8Array,
-  hexStringToByteArray,
-  sleep,
-} from "./utils";
+import { FelicaReaderRcS300 } from "./FelicaReaderRcS300";
+import type {
+  FelicaOperationResult,
+  IFelicaReader,
+  IFelicaReaderConstructor,
+} from "./IFelicaReader";
+import { arrayToHex, hexStringToByteArray } from "./utils";
 
-// 各操作の戻り値型定義
+// FeliCaリーダーの型番情報
+type FelicaReaderModelInfo = {
+  vendorId: number;
+  productId: number;
+  readerClass: IFelicaReaderConstructor;
+};
+
+// 対応のFeliCaリーダー機器
+export const felicaReaderModels = {
+  "RC-S300/S": {
+    vendorId: 1356,
+    productId: 3528,
+    readerClass: FelicaReaderRcS300,
+  },
+  "RC-S300/P": {
+    vendorId: 1356,
+    productId: 3529,
+    readerClass: FelicaReaderRcS300,
+  },
+} as const satisfies Record<string, FelicaReaderModelInfo>;
+
+// 対応のFeliCaリーダー機器型番のリテラル型
+export type FelicaReaderModelName = keyof typeof felicaReaderModels;
+
+// Pollingの戻り値型
 export type FelicaPollingResult = {
   idm: string;
   systemCode: string;
 };
 
+// RequestServiceの戻り値型
 export type FelicaRequestServiceResult = {
   idm: string;
   nodeCount: string;
   nodeKeyVerList: string;
 };
 
+// ReadWithoutEncryptionの戻り値型
 export type FelicaReadWithoutEncryptionResult = {
   idm: string;
   statusFlag1: string;
@@ -27,59 +53,96 @@ export type FelicaReadWithoutEncryptionResult = {
 };
 
 export class FelicaService {
-  private seq = 0;
+  /**
+   * FeliCaリーダー機器への接続
+   * @param readerFilter 接続を許可する機器の型番リスト
+   * @param debugEnabled デバッグを有効にする
+   * @returns
+   */
+  public static async connectFelicaReader(
+    readerFilter: FelicaReaderModelName[] = [],
+    debugEnabled = false,
+  ): Promise<FelicaService | undefined> {
+    // 結果セット（取得できたUSBデバイスと型番）
+    let resultSet:
+      | { usbDevice: USBDevice; modelName: FelicaReaderModelName }
+      | undefined = undefined;
 
-  // RC-S300 のコマンド定義
-  private s300Commands = {
-    startransparent: new Uint8Array([
-      0xff, 0x50, 0x00, 0x00, 0x02, 0x81, 0x00, 0x00,
-    ]),
-    turnOn: new Uint8Array([0xff, 0x50, 0x00, 0x00, 0x02, 0x84, 0x00, 0x00]),
-    endTransparent: new Uint8Array([
-      0xff, 0x50, 0x00, 0x00, 0x02, 0x82, 0x00, 0x00,
-    ]),
-    turnOff: new Uint8Array([0xff, 0x50, 0x00, 0x00, 0x02, 0x83, 0x00, 0x00]),
-  };
+    // 許可可能な型番フィルタ（指定が無い場合は、本モジュールで定義する全型番を対象とする）
+    const allReaders = Object.keys(
+      felicaReaderModels,
+    ) as FelicaReaderModelName[];
+    const acceptableReaders =
+      readerFilter && readerFilter.length > 0
+        ? allReaders.filter((modelName) => readerFilter.includes(modelName))
+        : allReaders;
 
-  constructor(
-    public s300: USBDevice,
-    private isDebug = false,
-  ) {}
+    // 設定済のUSBDeviceインスタンス取得
+    // （設定済デバイスが取得できない場合、結果セットはundefined）
+    const connectedDevices = await navigator.usb.getDevices();
+    if (connectedDevices.length > 0) {
+      for (const device of connectedDevices) {
+        const modelFound = acceptableReaders.find(
+          (acceptableReader) =>
+            device.vendorId === felicaReaderModels[acceptableReader].vendorId &&
+            device.productId === felicaReaderModels[acceptableReader].productId,
+        );
+        if (modelFound) {
+          resultSet = { usbDevice: device, modelName: modelFound };
+          break;
+        }
+      }
+    }
+
+    // USB機器をペアリングフローから選択しデバイスのUSBDeviceインスタンス取得
+    if (!resultSet) {
+      let device: USBDevice;
+      const deviceFilters = readerFilter.map((acceptableReader) => ({
+        vendorId: felicaReaderModels[acceptableReader].vendorId,
+        productId: felicaReaderModels[acceptableReader].productId,
+      }));
+      try {
+        device = await navigator.usb.requestDevice({
+          filters: deviceFilters,
+        });
+      } catch (e: unknown) {
+        // 取得できない場合、DOMExceptionがスローされる
+        if (e instanceof DOMException) return undefined;
+        // その他のエラー
+        throw e;
+      }
+
+      resultSet = {
+        usbDevice: device,
+        modelName: acceptableReaders.find(
+          (acceptableReader) =>
+            device.vendorId === felicaReaderModels[acceptableReader].vendorId &&
+            device.productId === felicaReaderModels[acceptableReader].productId,
+        ) as FelicaReaderModelName,
+      };
+    }
+
+    const felicaReader: IFelicaReader = new felicaReaderModels[
+      resultSet.modelName
+    ].readerClass(resultSet.usbDevice, debugEnabled);
+
+    const felicaService = new FelicaService(felicaReader);
+    return felicaService;
+  }
+
+  /**
+   * コンストラクタ
+   * @param felicaReader
+   */
+  protected constructor(public felicaReader: IFelicaReader) {}
 
   /**
    * デバイスのオープン
    * @returns
    */
   public async openDevice() {
-    const { confValue, interfaceNum } = this.getUsbConfigSet();
-
-    await this.s300.open();
-    await this.s300.selectConfiguration(confValue); // USBデバイスの構成を選択
-    await this.s300.claimInterface(interfaceNum); // USBデバイスの指定インターフェイスを排他アクセスにする
-
-    await this.sendUsb(
-      this.s300Commands.endTransparent,
-      "End Transeparent Session",
-    );
-    await this.recvUsb(64);
-
-    await this.sendUsb(
-      this.s300Commands.startransparent,
-      "Start Transeparent Session",
-    );
-    await this.recvUsb(64);
-
-    await this.sendUsb(this.s300Commands.turnOff, "Turn Off RF");
-    await sleep(50);
-    await this.recvUsb(64);
-    await sleep(50);
-
-    await this.sendUsb(this.s300Commands.turnOn, "Turn On RF");
-    await sleep(50);
-    await this.recvUsb(64);
-    await sleep(50);
-
-    return;
+    // デバイスのopen実行
+    await this.felicaReader.open();
   }
 
   /**
@@ -87,70 +150,8 @@ export class FelicaService {
    * @returns
    */
   public async closeDevice() {
-    const { interfaceNum } = this.getUsbConfigSet();
-
-    await this.sendUsb(this.s300Commands.turnOff, "Turn Off RF");
-    await sleep(50);
-    await this.recvUsb(64);
-    await sleep(50);
-
-    await this.sendUsb(
-      this.s300Commands.endTransparent,
-      "End Transeparent Session",
-    );
-    await this.recvUsb(64);
-
-    // USBデバイスの指定インターフェイスを排他アクセスを解放する
-    await this.s300.releaseInterface(interfaceNum);
-    await this.s300.close();
-
-    return;
-  }
-
-  /**
-   * PasoRiへの送信
-   * @param data
-   * @returns
-   */
-  private async sendUsb(data: Uint8Array, trcMsg = "") {
-    /**
-     * PasoRiのリクエストヘッダー付与
-     */
-    const addReqHeader = (argData: Uint8Array) => {
-      const dataLen = argData.length;
-      const SLOTNUMBER = 0x00;
-      const retVal = new Uint8Array(10 + dataLen);
-
-      retVal[0] = 0x6b; // ヘッダー作成
-      retVal[1] = 255 & dataLen; // length をリトルエンディアン
-      retVal[2] = (dataLen >> 8) & 255;
-      retVal[3] = (dataLen >> 16) & 255;
-      retVal[4] = (dataLen >> 24) & 255;
-      retVal[5] = SLOTNUMBER; // タイムスロット番号
-      retVal[6] = ++this.seq; // 認識番号
-
-      0 !== dataLen && retVal.set(argData, 10); // コマンド追加
-
-      return retVal;
-    };
-
-    const { endPointOutNum } = this.getUsbConfigSet();
-    const reqData = addReqHeader(data);
-    await this.s300.transferOut(endPointOutNum, reqData);
-
-    if (this.isDebug) console.log(`${trcMsg} Send: ${arrayToHex(reqData)}`);
-  }
-
-  /**
-   * PasoRiの応答取得
-   * @param rcvLen
-   * @returns
-   */
-  private async recvUsb(rcvLen: number) {
-    const { endPointInNum } = this.getUsbConfigSet();
-    const res = await this.s300.transferIn(endPointInNum, rcvLen);
-    if (this.isDebug) console.log(`Recv: ${binArrayToHex(res.data)}`);
-    return res;
+    // デバイスのclose実行
+    await this.felicaReader.close();
   }
 
   /**
@@ -282,24 +283,20 @@ export class FelicaService {
     felicaCommand: number[],
     timeout: number,
     description: string,
-  ): Promise<
-    { length: number; responseCode: number; data: number[] } | undefined
-  > {
-    const wrappedCommand = await this.wrapCTXIns(felicaCommand, timeout);
-    await this.sendUsb(wrappedCommand, description);
-    const cTXResponse = await this.recvUsb(64);
-    return this.unwrapCTXResponse(cTXResponse);
+  ): Promise<FelicaOperationResult> {
+    const felicaRequest = this.constructFelicaRequest(felicaCommand, timeout);
+    // デバイスのfelicaコマンド実行
+    const result = await this.felicaReader.operateFelica(
+      felicaRequest,
+      description,
+    );
+    return result;
   }
 
-  /**
-   * Felica コマンドを RC-S300 の communicateThruEX 命令形式にラップする。
-   */
-  private async wrapCTXIns(
+  private constructFelicaRequest(
     felicaCommand: number[],
     timeout: number,
-  ): Promise<Uint8Array> {
-    const communicateThruEX = [0xff, 0x50, 0x00, 0x01, 0x00];
-    const communicateThruEXFooter = [0x00, 0x00, 0x00];
+  ): number[] {
     const felicaHeader = [0x5f, 0x46, 0x04];
     const felicaOption = [0x95, 0x82];
     const felicaTimeout = timeout * 1000; // マイクロ秒（リトルエンディアン）
@@ -319,33 +316,65 @@ export class FelicaService {
     );
     felicaReq.push(felicaCommandLength);
     felicaReq.push(...felicaCommand);
-    const felicaReqLen = felicaReq.length;
-    const cTX: number[] = [...communicateThruEX];
-    cTX.push((felicaReqLen >> 8) & 0xff, felicaReqLen & 0xff);
-    cTX.push(...felicaReq);
-    cTX.push(...communicateThruEXFooter);
-    return new Uint8Array(cTX);
+
+    return felicaReq;
   }
 
-  /**
-   * communicateThruEX レスポンスから Felica 応答データを取り出す。
-   */
-  private unwrapCTXResponse(
-    cTXResponse: USBInTransferResult,
-  ): { length: number; responseCode: number; data: number[] } | undefined {
-    if (!cTXResponse.data) return undefined;
-    const data = dataViewToUint8Array(cTXResponse.data);
-    const idx = data.indexOf(0x97);
-    if (idx < 0) return undefined;
-    const lenIndex = idx + 1;
-    const length = data[lenIndex];
-    const allData = Array.from(data.slice(lenIndex + 1, lenIndex + 1 + length));
-    return {
-      length,
-      responseCode: allData[1],
-      data: allData.slice(2),
-    };
-  }
+  // /**
+  //  * Felica コマンドを RC-S300 の communicateThruEX 命令形式にラップする。
+  //  */
+  // private async wrapCTXIns(
+  //   felicaCommand: number[],
+  //   timeout: number,
+  // ): Promise<Uint8Array> {
+  //   const communicateThruEX = [0xff, 0x50, 0x00, 0x01, 0x00];
+  //   const communicateThruEXFooter = [0x00, 0x00, 0x00];
+  //   const felicaHeader = [0x5f, 0x46, 0x04];
+  //   const felicaOption = [0x95, 0x82];
+  //   const felicaTimeout = timeout * 1000; // マイクロ秒（リトルエンディアン）
+
+  //   const felicaCommandLength = felicaCommand.length + 1;
+  //   const felicaReq: number[] = [...felicaHeader];
+  //   felicaReq.push(
+  //     felicaTimeout & 0xff,
+  //     (felicaTimeout >> 8) & 0xff,
+  //     (felicaTimeout >> 16) & 0xff,
+  //     (felicaTimeout >> 24) & 0xff,
+  //   );
+  //   felicaReq.push(...felicaOption);
+  //   felicaReq.push(
+  //     (felicaCommandLength >> 8) & 0xff,
+  //     felicaCommandLength & 0xff,
+  //   );
+  //   felicaReq.push(felicaCommandLength);
+  //   felicaReq.push(...felicaCommand);
+  //   const felicaReqLen = felicaReq.length;
+  //   const cTX: number[] = [...communicateThruEX];
+  //   cTX.push((felicaReqLen >> 8) & 0xff, felicaReqLen & 0xff);
+  //   cTX.push(...felicaReq);
+  //   cTX.push(...communicateThruEXFooter);
+  //   return new Uint8Array(cTX);
+  // }
+
+  // /**
+  //  * communicateThruEX レスポンスから Felica 応答データを取り出す。
+  //  */
+  // private unwrapCTXResponse(
+  //   cTXResponse: USBInTransferResult,
+  // ): { length: number; responseCode: number; data: number[] } | undefined {
+  //   if (!cTXResponse.data) return undefined;
+  //   const data = dataViewToUint8Array(cTXResponse.data);
+  //   const idx = data.indexOf(0x97);
+  //   if (idx < 0) return undefined;
+  //   const lenIndex = idx + 1;
+  //   const length = data[lenIndex];
+  //   const allData = Array.from(data.slice(lenIndex + 1, lenIndex + 1 + length));
+  //   return {
+  //     length,
+  //     responseCode: allData[1],
+  //     data: allData.slice(2),
+  //   };
+  // }
 
   /**
    * ブロックリストを構成する。
@@ -380,32 +409,32 @@ export class FelicaService {
     return result;
   }
 
-  /**
-   * USB設定の取得
-   * @returns
-   */
-  private getUsbConfigSet() {
-    const getEndPoint = (usbIf: USBInterface, direction: USBDirection) =>
-      usbIf.alternate.endpoints.find((ep) => ep.direction === direction);
+  // /**
+  //  * USB設定の取得
+  //  * @returns
+  //  */
+  // private getUsbConfigSet() {
+  //   const getEndPoint = (usbIf: USBInterface, direction: USBDirection) =>
+  //     usbIf.alternate.endpoints.find((ep) => ep.direction === direction);
 
-    if (!this.s300.configuration) throw new Error("configurationがありません");
+  //   if (!this.s300.configuration) throw new Error("configurationがありません");
 
-    const usbConf = this.s300.configuration;
-    const usbIf = usbConf.interfaces[usbConf.configurationValue];
+  //   const usbConf = this.s300.configuration;
+  //   const usbIf = usbConf.interfaces[usbConf.configurationValue];
 
-    const inEp = getEndPoint(usbIf, "in");
-    if (!inEp) throw new Error("入力USBエンドポイントが取得できませんでした");
+  //   const inEp = getEndPoint(usbIf, "in");
+  //   if (!inEp) throw new Error("入力USBエンドポイントが取得できませんでした");
 
-    const outEp = getEndPoint(usbIf, "out");
-    if (!outEp) throw new Error("出力USBエンドポイントが取得できませんでした");
+  //   const outEp = getEndPoint(usbIf, "out");
+  //   if (!outEp) throw new Error("出力USBエンドポイントが取得できませんでした");
 
-    return {
-      confValue: usbConf.configurationValue,
-      interfaceNum: usbIf.interfaceNumber,
-      endPointInNum: inEp.endpointNumber,
-      endPointInPacketSize: inEp.packetSize,
-      endPointOutNum: outEp.endpointNumber,
-      endPointOutPacketSize: outEp.packetSize,
-    };
-  }
+  //   return {
+  //     confValue: usbConf.configurationValue,
+  //     interfaceNum: usbIf.interfaceNumber,
+  //     endPointInNum: inEp.endpointNumber,
+  //     endPointInPacketSize: inEp.packetSize,
+  //     endPointOutNum: outEp.endpointNumber,
+  //     endPointOutPacketSize: outEp.packetSize,
+  //   };
+  // }
 }

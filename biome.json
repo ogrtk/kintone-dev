@@ -41,7 +41,7 @@
 			"linter": {
 				"rules": {
 					"complexity": {
-						"useLiteralKeys": "info"
+						"useLiteralKeys": "off"
 					},
 					"suspicious": {
 						"noExplicitAny": "warn"

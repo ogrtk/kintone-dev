@@ -1,4 +1,4 @@
-import { FelicaService } from "./FelicaService";
+import { type FelicaReaderModelName, FelicaService } from "./FelicaService";
 import { sleep } from "./utils";
 
 export type BlockListParam = {
@@ -23,43 +23,15 @@ export class WebUsbCardReader {
    * デバイスに接続
    * @returns
    */
-  static async connect(isDebug = false) {
-    const deviceFilters: USBDeviceFilter[] = [
-      { vendorId: 1356, productId: 3528 }, // SONY PaSoRi RC-S300/S
-      { vendorId: 1356, productId: 3529 }, // SONY PaSoRi RC-S300/P
-    ];
-
-    let usbDevice: USBDevice | undefined = undefined;
-
-    // ペアリング設定済みデバイスのUSBDeviceインスタンス取得
-    const ud = await navigator.usb.getDevices();
-    if (ud.length > 0) {
-      for (const dev of ud) {
-        const td = deviceFilters.find(
-          (deviceFilter) =>
-            dev.vendorId === deviceFilter.vendorId &&
-            dev.productId === deviceFilter.productId,
-        );
-        if (td !== undefined) {
-          usbDevice = dev;
-          break;
-        }
-      }
-    }
-
-    // USB機器をペアリングフローから選択しデバイスのUSBDeviceインスタンス取得
-    if (!usbDevice) {
-      try {
-        usbDevice = await navigator.usb.requestDevice({
-          filters: deviceFilters,
-        });
-      } catch (e: unknown) {
-        if (!(e instanceof DOMException)) throw e;
-        return undefined;
-      }
-    }
-
-    return new WebUsbCardReader(new FelicaService(usbDevice, isDebug));
+  static async connect(
+    readerFilter: FelicaReaderModelName[] = [],
+    debugEnabled = false,
+  ) {
+    const felicaService = await FelicaService.connectFelicaReader(
+      readerFilter,
+      debugEnabled,
+    );
+    return felicaService ? new WebUsbCardReader(felicaService) : undefined;
   }
 
   /**
@@ -80,7 +52,7 @@ export class WebUsbCardReader {
         if (!response) await sleep(1000);
       }
     } catch (e: unknown) {
-      if (this.felicaService.s300.opened)
+      if (this.felicaService.felicaReader.isOpened)
         await this.felicaService.closeDevice();
       throw e;
     }
@@ -109,7 +81,7 @@ export class WebUsbCardReader {
 
       return result;
     } catch (e: unknown) {
-      if (this.felicaService.s300.opened)
+      if (this.felicaService.felicaReader.isOpened)
         await this.felicaService.closeDevice();
       throw e;
     }
@@ -137,7 +109,7 @@ export class WebUsbCardReader {
 
       return result;
     } catch (e: unknown) {
-      if (this.felicaService.s300.opened)
+      if (this.felicaService.felicaReader.isOpened)
         await this.felicaService.closeDevice();
       throw e;
     }
