@@ -320,62 +320,6 @@ export class FelicaService {
     return felicaReq;
   }
 
-  // /**
-  //  * Felica コマンドを RC-S300 の communicateThruEX 命令形式にラップする。
-  //  */
-  // private async wrapCTXIns(
-  //   felicaCommand: number[],
-  //   timeout: number,
-  // ): Promise<Uint8Array> {
-  //   const communicateThruEX = [0xff, 0x50, 0x00, 0x01, 0x00];
-  //   const communicateThruEXFooter = [0x00, 0x00, 0x00];
-  //   const felicaHeader = [0x5f, 0x46, 0x04];
-  //   const felicaOption = [0x95, 0x82];
-  //   const felicaTimeout = timeout * 1000; // マイクロ秒（リトルエンディアン）
-
-  //   const felicaCommandLength = felicaCommand.length + 1;
-  //   const felicaReq: number[] = [...felicaHeader];
-  //   felicaReq.push(
-  //     felicaTimeout & 0xff,
-  //     (felicaTimeout >> 8) & 0xff,
-  //     (felicaTimeout >> 16) & 0xff,
-  //     (felicaTimeout >> 24) & 0xff,
-  //   );
-  //   felicaReq.push(...felicaOption);
-  //   felicaReq.push(
-  //     (felicaCommandLength >> 8) & 0xff,
-  //     felicaCommandLength & 0xff,
-  //   );
-  //   felicaReq.push(felicaCommandLength);
-  //   felicaReq.push(...felicaCommand);
-  //   const felicaReqLen = felicaReq.length;
-  //   const cTX: number[] = [...communicateThruEX];
-  //   cTX.push((felicaReqLen >> 8) & 0xff, felicaReqLen & 0xff);
-  //   cTX.push(...felicaReq);
-  //   cTX.push(...communicateThruEXFooter);
-  //   return new Uint8Array(cTX);
-  // }
-
-  // /**
-  //  * communicateThruEX レスポンスから Felica 応答データを取り出す。
-  //  */
-  // private unwrapCTXResponse(
-  //   cTXResponse: USBInTransferResult,
-  // ): { length: number; responseCode: number; data: number[] } | undefined {
-  //   if (!cTXResponse.data) return undefined;
-  //   const data = dataViewToUint8Array(cTXResponse.data);
-  //   const idx = data.indexOf(0x97);
-  //   if (idx < 0) return undefined;
-  //   const lenIndex = idx + 1;
-  //   const length = data[lenIndex];
-  //   const allData = Array.from(data.slice(lenIndex + 1, lenIndex + 1 + length));
-  //   return {
-  //     length,
-  //     responseCode: allData[1],
-  //     data: allData.slice(2),
-  //   };
-  // }
-
   /**
    * ブロックリストを構成する。
    * @param param ブロック範囲とアクセスモード
@@ -408,33 +352,4 @@ export class FelicaService {
     }
     return result;
   }
-
-  // /**
-  //  * USB設定の取得
-  //  * @returns
-  //  */
-  // private getUsbConfigSet() {
-  //   const getEndPoint = (usbIf: USBInterface, direction: USBDirection) =>
-  //     usbIf.alternate.endpoints.find((ep) => ep.direction === direction);
-
-  //   if (!this.s300.configuration) throw new Error("configurationがありません");
-
-  //   const usbConf = this.s300.configuration;
-  //   const usbIf = usbConf.interfaces[usbConf.configurationValue];
-
-  //   const inEp = getEndPoint(usbIf, "in");
-  //   if (!inEp) throw new Error("入力USBエンドポイントが取得できませんでした");
-
-  //   const outEp = getEndPoint(usbIf, "out");
-  //   if (!outEp) throw new Error("出力USBエンドポイントが取得できませんでした");
-
-  //   return {
-  //     confValue: usbConf.configurationValue,
-  //     interfaceNum: usbIf.interfaceNumber,
-  //     endPointInNum: inEp.endpointNumber,
-  //     endPointInPacketSize: inEp.packetSize,
-  //     endPointOutNum: outEp.endpointNumber,
-  //     endPointOutPacketSize: outEp.packetSize,
-  //   };
-  // }
 }
