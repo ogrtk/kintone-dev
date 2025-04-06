@@ -15,7 +15,7 @@
 		"@ogrtk/kintone-api-plugin-uploader": "^0.8.0",
 		"@ogrtk/kintone-simple-plugin-packer": "^0.8.1",
 		"@testing-library/jest-dom": "^6.6.3",
-		"@testing-library/react": "^16.2.0",
+		"@testing-library/react": "^16.3.0",
 		"@testing-library/user-event": "^14.6.1",
 		"@vitest/coverage-v8": "3.0.5",
 		"concurrently": "^9.1.0",
