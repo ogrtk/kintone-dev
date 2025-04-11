@@ -26,5 +26,10 @@
 		"vite": "^6.2.5",
 		"vite-tsconfig-paths": "^5.1.4",
 		"vitest": "^3.0.5"
+	},
+	"pnpm": {
+		"overrides": {
+			"react-hook-form": "7.52.0"
+		}
 	}
 }
