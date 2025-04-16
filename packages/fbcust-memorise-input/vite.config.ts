@@ -1,4 +1,3 @@
-import path from "node:path";
 import { defineConfig } from "vite";
 import baseConfig from "../../vite.config";
 
@@ -8,6 +7,5 @@ export default defineConfig({
 
   server: {
     https: baseConfig?.server?.https,
-    open: path.join("src", "index.js"),
   },
 });

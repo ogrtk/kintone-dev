@@ -4,14 +4,19 @@
    ***************************************/
   // ブラウザへの保存を有効化するチェックボックス項目のフィールドコード
   const ENABLE_SWITCH_CHECKBOX = "memoryEnabled";
+
   // ブラウザへの保存を有効化するチェックボックス項目の値
   const SELECTION_ENABLE = "保存する";
+
   // ブラウザへの保存を行う対象とするformbridgeのイベント
+  // (https://formbridge.kintoneapp.com/help/customize/v2)
   const SAVE_TARGET_EVENTS = [
     "form.submit", //  回答画面で回答ボタンをクリックしたとき
     "form.confirm", // 回答画面で確認ボタンをクリックしたとき(確認画面設定時)
   ];
+
   // ブラウザからの読み込みを行う対象とするformbridgeのイベント
+  // (https://formbridge.kintoneapp.com/help/customize/v2)
   const LOAD_TARGET_EVENTS = [
     "form.show", //  フォーム(回答画面)全体を表示したとき, またはステップを移動してフォームを表示したとき(ステップフォーム設定時のみ)
   ];
@@ -22,6 +27,7 @@
     { formCd: "案件名", memoryCd: "案件名" },
     { formCd: "memoryEnabled", memoryCd: "保存設定" },
   ];
+
   // 保存するサブテーブルの対象項目を設定
   const MEMO_TARGET_TABLE_ITEMS = [{ formCd: "質疑", memoryCd: "質疑データ" }];
 
@@ -92,13 +98,17 @@
           localStorage.getItem(memoTargetTableItem.memoryCd),
         );
 
+        // 各行のデータを処理
         for (const [index, row] of tableData.entries()) {
+          // ２行目以降は、テーブルに行追加する
           if (index !== 0) addRow(memoTargetTableItem.formCd);
 
           const rowData = row.value;
           const columnKeys = Object.keys(rowData);
 
+          // 項目ごとに処理
           for (const key of columnKeys) {
+            // テーブルに値を設定
             context.setSubtableFieldValue(
               memoTargetTableItem.formCd,
               key,

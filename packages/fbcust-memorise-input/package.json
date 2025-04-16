@@ -1,7 +1,7 @@
 {
 	"name": "fbcust-memorise-input",
 	"version": "1.0.0",
-	"main": "index.js",
+	"main": "fb-index.js",
 	"type": "module",
 	"scripts": {
 		"check": "biome check --write",
